@@ -3,6 +3,8 @@ metr
 
 metric calculator
 
+[![Build Status](https://travis-ci.org/agiledevteam/metr.png)](https://travis-ci.org/agiledevteam/metr)
+
 run
 ===
 
