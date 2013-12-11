@@ -12,22 +12,30 @@ import spoon.reflect.visitor.Query
 import spoon.reflect.Factory
 import spoon.reflect.visitor.Filter
 import spoon.reflect.visitor.filter.AbstractFilter
+import spoon.support.builder.CtFile
+import spoon.support.builder.support.CtFileFile
+import java.io.File
+import scala.io.Source
 
 @RunWith(classOf[JUnitRunner])
-class DLOCVisitorTest extends FunSuite with LocCounter {
+class DlocTest extends FunSuite with LocCounter {
 
   object launcher extends AbstractLauncher {
 
-    def load(src: String): Factory = {
+    def load(res: CtResource): Factory = {
       val f = createFactory();
       val b = f.getBuilder
-      b.addInputSource(asResource(src))
+      b.addInputSource(res)
       b.build
       f
     }
-
-    def asResource(src: String): CtResource = new CtVirtualFile(src, "Loc.java")
   }
+
+  def stringResource(src: String): CtFile =
+    new CtVirtualFile(src, "Loc.java")
+
+  def fileResource(path: String): CtFile =
+    new CtFileFile(new File(path))
 
   class MethodFilter(name: String) extends AbstractFilter[CtMethod[_]](classOf[CtMethod[_]]) {
     override def matches(m: CtMethod[_]): Boolean = {
@@ -52,7 +60,7 @@ class DLOCVisitorTest extends FunSuite with LocCounter {
   }
 
   def dloc(src: String): Double = {
-    val f = launcher.load(testSrc(src))
+    val f = launcher.load(stringResource(testSrc(src)))
     dloc(methodNamed(f, "loc").getBody)
   }
 
@@ -132,5 +140,79 @@ class DLOCVisitorTest extends FunSuite with LocCounter {
         return; // 5
         """
     expect(5)(dloc(body))
+  }
+
+  test("loop") {
+    val body = """
+        int c = 3;
+        while (c < 3) { //1
+          int a = 0;
+          a++;       //2
+          do {
+            int b = 0;
+            b++;  // 3
+            b++; 
+            b++;  // 4
+          } while (a < 0);
+        }
+        """
+    expect(5)(dloc(body))
+  }
+
+  test("synchronized") {
+    val body = """
+        if (true) { //  1
+          int a = 0; // 0.5
+          a++;       // 0.5
+          synchronized(this) {  // 0.5
+            int b = 0;  // 0.5
+            b++;        // 0.5
+          }
+        }
+        return; // 1
+        """
+    expect(4.5)(dloc(body))
+  }
+
+  test("switch-case") {
+    val body = """
+          int a = 3;
+          switch(a) {
+      case 0: 
+      case 2:
+        a++;
+        a++;
+      case 3:
+        if (a < 3) {
+          a++;
+          a++;
+        }
+      case 5:
+        a++;
+        a++;
+        a++;
+        break;
+      default:
+        break;
+       }
+          """
+    expect(11.5)(dloc(body))
+  }
+
+  def checkFile(testFile: String, testMethod: String) {
+    val res = fileResource(testFile)
+    val f = launcher.load(res)
+    val weightP = "// ?([.0-9]+)".r
+    val expected = Source.fromFile(testFile).getLines
+      .map(weightP findFirstIn _)
+      .collect {
+        case Some(weightP(w)) => w.toDouble
+      }.foldLeft(0.0)(_ + _)
+    expect(expected)(dloc(methodNamed(f, testMethod).getBody))
+  }
+
+  test("sample input ") {
+    checkFile("src/test/resources/LittleNested.java", "nestedCases")
+    checkFile("src/test/resources/AllGrammar.java", "allStatements")
   }
 }
