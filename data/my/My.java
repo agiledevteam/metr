@@ -14,6 +14,12 @@ class Your<T extends Abs> {
 	// 1
 	boolean ready() {
 	  int a = 0;
+	  if (a < 0) {
+	    a++;
+	  } else if (a < 0) {
+	    a++;
+	    a++;
+	  }
 	  if (false
         && true
         || true

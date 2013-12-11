@@ -5,11 +5,7 @@ import scala.collection.JavaConversions.asScalaSet
 import spoon.processing.AbstractProcessor
 import spoon.reflect.declaration.CtClass
 
-class LocCalculator extends AbstractProcessor[CtClass[_]] with Naming {
-
-  def blankLine(l: String) = l forall (!_.isLetterOrDigit)
-
-  def plainLoc(s: String) = (s.lines filterNot blankLine).size
+class LocCalculator extends AbstractProcessor[CtClass[_]] with Naming with LocCounter {
 
   override def process(klass: CtClass[_]) {
     for (c <- klass.getAllMethods ++ klass.getConstructors if !c.isImplicit()) {
