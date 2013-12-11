@@ -14,7 +14,7 @@ import spoon.reflect.visitor.Filter
 import spoon.reflect.visitor.filter.AbstractFilter
 
 @RunWith(classOf[JUnitRunner])
-class DLOCVisitorTest extends FunSuite {
+class DLOCVisitorTest extends FunSuite with LocCounter {
 
   object launcher extends AbstractLauncher {
 
@@ -39,7 +39,7 @@ class DLOCVisitorTest extends FunSuite {
     Query.getElements(f, new MethodFilter(name)).head
   }
 
-  def dloc(src: String): Double = {
+  def testSrc(src: String): String = {
     val header =
       """class Loc {
         | public void loc() {
@@ -48,11 +48,12 @@ class DLOCVisitorTest extends FunSuite {
       """
         | }
         |}""".stripMargin
-    val f = launcher.load(header + src + footer)
-    val m: CtMethod[_] = methodNamed(f, "loc")
-    val v = new DLOCVisitor(1)
-    m.getBody.accept(v)
-    v.dloc
+    header + src + footer
+  }
+
+  def dloc(src: String): Double = {
+    val f = launcher.load(testSrc(src))
+    dloc(methodNamed(f, "loc").getBody)
   }
 
   test("straight forward plain loc") {
@@ -114,5 +115,22 @@ class DLOCVisitorTest extends FunSuite {
         return;
         """
     expect(4)(dloc(body))
-  } 
+  }
+
+  test("nested block") {
+    val body = """
+        if (true) { //1
+          int a = 0;
+          a++;       //2
+          {
+            int b = 0;
+            b++;  // 3
+            b++; 
+            b++;  // 4
+          }
+        }
+        return; // 5
+        """
+    expect(5)(dloc(body))
+  }
 }
