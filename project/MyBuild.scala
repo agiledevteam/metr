@@ -1,5 +1,6 @@
 import sbt._
 import Keys._
+
 object MyBuild extends Build {
   // ...
   val getJars = TaskKey[Unit]("get-jars")
@@ -7,8 +8,7 @@ object MyBuild extends Build {
     println("Target path is: " + target)
     println("Full classpath is: " + cp.map(_.data).mkString(":"))
   }
-  lazy val project = Project(
-    "project",
-    file("."),
-    settings = Defaults.defaultSettings ++ Seq(getJarsTask))
+  lazy val project = Project( "project", file("."),
+    settings = Defaults.defaultSettings ++ Seq(getJarsTask) 
+  )
 }

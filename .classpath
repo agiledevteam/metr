@@ -7,6 +7,10 @@
   <classpathentry kind="lib" path="/Users/jooyunghan/.ivy2/cache/fr.inria.gforge.spoon/spoon-core/jars/spoon-core-1.5.jar"/>
   <classpathentry kind="lib" path="/Users/jooyunghan/.ivy2/cache/org.eclipse.jdt/core/jars/core-3.3.8.201211290939.jar"/>
   <classpathentry kind="lib" path="/Users/jooyunghan/.ivy2/cache/com.martiansoftware/jsap/jars/jsap-2.1.jar"/>
+  <classpathentry kind="lib" path="/Users/jooyunghan/.ivy2/cache/org.scalatest/scalatest_2.10/jars/scalatest_2.10-1.9.1.jar"/>
+  <classpathentry kind="lib" path="/Users/jooyunghan/.ivy2/cache/org.scala-lang/scala-actors/jars/scala-actors-2.10.0.jar"/>
+  <classpathentry kind="lib" path="/Users/jooyunghan/.ivy2/cache/junit/junit/jars/junit-4.10.jar"/>
+  <classpathentry kind="lib" path="/Users/jooyunghan/.ivy2/cache/org.hamcrest/hamcrest-core/jars/hamcrest-core-1.1.jar"/>
   <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
   <classpathentry kind="output" path="bin"/>
 </classpath>

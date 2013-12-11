@@ -2,4 +2,7 @@ target/
 .cache
 spooned
 
+.DS_Store
+bin
+gen
 
