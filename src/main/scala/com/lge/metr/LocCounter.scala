@@ -37,7 +37,7 @@ trait LocCounter {
   }
 
   def dloc(stmts: Iterable[CtStatement]): Double =
-    stmts.map(dloc(_)).foldLeft(0.0)(_ + _)
+    stmts.filterNot(_.isImplicit).map(dloc(_)).foldLeft(0.0)(_ + _)
 
   def dloc(stmt: CtStatement): Double = stmt match {
     case null =>
