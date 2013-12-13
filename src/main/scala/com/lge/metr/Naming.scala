@@ -8,10 +8,7 @@ import spoon.reflect.reference.CtArrayTypeReference
 
 trait Naming {
   def nameFor[T](c: CtExecutable[T]): String =
-    c.getDeclaringType.getQualifiedName + ":" + c.getSimpleName
-
-  def nameFor[T](c: CtInvocation[T]): String =
-    nameFor(c.getExecutable)
+    nameFor(c.getReference)
 
   def encodeArrayType[T](c: CtTypeReference[T]): String = c match {
     case ac: CtArrayTypeReference[T] => "[" * ac.getDimensionCount()
@@ -31,7 +28,7 @@ trait Naming {
     case z => "L" + slash(z)
   }
 
-  def nameFor[T](c: CtTypeReference[T]): String = 
+  def nameFor[T](c: CtTypeReference[T]): String =
     encodeArrayType(c) + encodeTypeName(c.getQualifiedName)
 
   def slash(s: String): String = s.replace('.', '/')

@@ -34,7 +34,7 @@ class MethodCallCounter extends AbstractProcessor[CtClass[_]] with Naming {
   override def process(klass: CtClass[_]) {
     val invokes = Query.getElements(klass, inv)
     for (i <- invokes if !i.isImplicit) {
-      println(nameFor(i))
+      println(nameFor(i.getExecutable))
     }
   }
 }

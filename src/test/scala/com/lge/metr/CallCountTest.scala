@@ -25,24 +25,40 @@ class A {
   }
       
   void f() {
+     b.g();  // invokevirtual B.g -> +1 for overridings
      b.g();
      b.g();
+	 b.g();
   }
   public static void main(String args[]) {
      A a = new A(new B());
      a.f();
+     new C().g();
+     new C().g();
   }
-}	
-class B {
+}
+class Base {
+  void g() {
+  }
+}
+class B extends Base {
+  @Override
   void g() {
     ;
+  }
+}
+class C extends B {
+  @Override
+  void g() { // overrides B.g()
+     super.g(); // calls B.g() invokespecial
   }
 }
       """
     val f = Loader.load(src)
     val m = ncalls(f)
     expect(1)(m("A.f:()V"))
-    expect(2)(m("B.g:()V"))
+    expect(5)(m("B.g:()V"))
+    expect(6)(m("C.g:()V"))
     expect(1)(m("A.<init>:(LB;)V"))
   }
 
