@@ -3,7 +3,7 @@ metr
 
 metric calculator
 * sloc - lines of code (after pretty formatting)
-* dloc - dloc - check out ['What is DLOC'](What is DLOC)
+* dloc - dloc - check out [['What is DLOC'|What is DLOC?]]
 * cc - cyclomatic complexity (a little bit modified)
 * ncalls - number of calls (including calls via overriding)
 
