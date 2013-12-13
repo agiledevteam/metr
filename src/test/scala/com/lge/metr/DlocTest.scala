@@ -21,16 +21,6 @@ import spoon.reflect.code.CtBlock
 @RunWith(classOf[JUnitRunner])
 class DlocTest extends FunSuite with LocCounter {
 
-  object launcher extends AbstractLauncher {
-
-    def load(res: CtResource): Factory = {
-      val f = createFactory();
-      val b = f.getBuilder
-      b.addInputSource(res)
-      b.build
-      f
-    }
-  }
 
   def stringResource(src: String): CtFile =
     new CtVirtualFile(src, "Loc.java")
@@ -61,7 +51,7 @@ class DlocTest extends FunSuite with LocCounter {
   }
 
   implicit def strToBlock[T, B <: T](body: String): CtBlock[B] = {
-    val f = launcher.load(stringResource(testSrc(body)))
+    val f = Loader.load(stringResource(testSrc(body)))
     val m: CtMethod[T] = methodNamed[T](f, "loc")
     m.getBody[B]
   }
@@ -212,7 +202,7 @@ class DlocTest extends FunSuite with LocCounter {
 
   def checkFile(testFile: String, testMethod: String) {
     val res = fileResource(testFile)
-    val f = launcher.load(res)
+    val f = Loader.load(res)
     val weightP = "// ?([.0-9]+)".r
     val weights = Source.fromFile(testFile).getLines
       .map(weightP findFirstIn _)
