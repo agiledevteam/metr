@@ -3,14 +3,17 @@ package com.lge.metr
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.collection.JavaConversions.bufferAsJavaList
 import scala.collection.mutable.ListBuffer
+
 import spoon.reflect.code.CtBlock
+import spoon.reflect.code.CtCase
+import spoon.reflect.code.CtDo
 import spoon.reflect.code.CtIf
 import spoon.reflect.code.CtLoop
 import spoon.reflect.code.CtStatement
-import spoon.reflect.code.CtDo
+import spoon.reflect.code.CtSwitch
 import spoon.reflect.code.CtSynchronized
 import spoon.reflect.code.CtTry
-import spoon.reflect.code.CtSwitch
+import spoon.reflect.declaration.CtExecutable
 
 trait LocCounter {
 
@@ -36,19 +39,21 @@ trait LocCounter {
     case _ => 1
   }
 
-  def dloc(stmts: Iterable[CtStatement]): Double =
-    stmts.filterNot(_.isImplicit).map(dloc(_)).foldLeft(0.0)(_ + _)
+  implicit def exeToBlock[T, B <: T](m: CtExecutable[T]): CtBlock[B] = m.getBody[B]
 
-  def dloc(stmt: CtStatement): Double = stmt match {
+  def dloc(stmt: CtStatement)(implicit df: Double = 0.5): Double = stmt match {
     case null =>
       0
-    case ifStatement: CtIf =>
-      ifElseChain(ifStatement).map(then =>
-        1 + dloc(then) * 0.5).foldLeft(0.0)(_ + _)
-    case blockStmt: CtBlock[_] =>
-      dloc(blockStmt.getStatements.toIterable)
+    case ifStmt: CtIf =>
+      ifElseChain(ifStmt).map(then => 1 + dloc(then) * df).foldLeft(0.0)(_ + _)
+    case switchStmt: CtSwitch[_] =>
+      switchStmt.getCases.map(c => dloc(c) * df + 1).foldLeft(1.0)(_ + _)
     case loopStmt: CtLoop =>
-      loopConditionLoc(loopStmt) + dloc(loopStmt.getBody) * 0.5
+      loopConditionLoc(loopStmt) + dloc(loopStmt.getBody) * df
+    case blockStmt: CtBlock[_] =>
+      blockStmt.getStatements.filterNot(_.isImplicit).map(dloc(_)).foldLeft(0.0)(_ + _)
+    case caseStmt: CtCase[_] =>
+      caseStmt.getStatements.filterNot(_.isImplicit).map(dloc(_)).foldLeft(0.0)(_ + _)
     case syncStmt: CtSynchronized =>
       1 + dloc(syncStmt.getBlock)
     case tryStmt: CtTry =>
@@ -58,9 +63,9 @@ trait LocCounter {
         loc + dloc(tryStmt.getFinalizer) + 1
       else
         loc
-    case switchStmt: CtSwitch[_] =>
-      switchStmt.getCases.map(c => dloc(c.getStatements) * 0.5 + 1).foldLeft(1.0)(_ + _)
     case s =>
       plainLoc(s.toString)
   }
+
+  def sloc(stmt: CtStatement): Double = dloc(stmt)(1)
 }

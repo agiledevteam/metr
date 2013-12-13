@@ -16,6 +16,7 @@ import spoon.support.builder.CtFile
 import spoon.support.builder.support.CtFileFile
 import java.io.File
 import scala.io.Source
+import spoon.reflect.code.CtBlock
 
 @RunWith(classOf[JUnitRunner])
 class DlocTest extends FunSuite with LocCounter {
@@ -37,14 +38,14 @@ class DlocTest extends FunSuite with LocCounter {
   def fileResource(path: String): CtFile =
     new CtFileFile(new File(path))
 
-  class MethodFilter(name: String) extends AbstractFilter[CtMethod[_]](classOf[CtMethod[_]]) {
-    override def matches(m: CtMethod[_]): Boolean = {
+  class MethodFilter[T](name: String) extends AbstractFilter[CtMethod[T]](classOf[CtMethod[T]]) {
+    override def matches(m: CtMethod[T]): Boolean = {
       m.getSimpleName == name
     }
   }
 
-  def methodNamed(f: Factory, name: String): CtMethod[_] = {
-    Query.getElements(f, new MethodFilter(name)).head
+  def methodNamed[T](f: Factory, name: String): CtMethod[T] = {
+    Query.getElements(f, new MethodFilter[T](name)).head
   }
 
   def testSrc(src: String): String = {
@@ -59,9 +60,10 @@ class DlocTest extends FunSuite with LocCounter {
     header + src + footer
   }
 
-  def dloc(src: String): Double = {
-    val f = launcher.load(stringResource(testSrc(src)))
-    dloc(methodNamed(f, "loc").getBody)
+  implicit def strToBlock[T, B <: T](body: String): CtBlock[B] = {
+    val f = launcher.load(stringResource(testSrc(body)))
+    val m: CtMethod[T] = methodNamed[T](f, "loc")
+    m.getBody[B]
   }
 
   test("straight forward plain loc") {
@@ -199,6 +201,15 @@ class DlocTest extends FunSuite with LocCounter {
     expect(11.5)(dloc(body))
   }
 
+  test("do-while-one-line") {
+    val body = """
+      int a = 0;
+      do a--; while(a>0);
+      """
+    expect(3.5)(dloc(body))
+    expect(4)(sloc(body))
+  }
+
   def checkFile(testFile: String, testMethod: String) {
     val res = fileResource(testFile)
     val f = launcher.load(res)
@@ -208,7 +219,7 @@ class DlocTest extends FunSuite with LocCounter {
       .collect {
         case Some(weightP(w)) => w.toDouble
       }.foldLeft(0.0)(_ + _)
-    expect(expected)(dloc(methodNamed(f, testMethod).getBody))
+    expect(expected)(dloc(methodNamed(f, testMethod)))
   }
 
   test("sample input ") {
