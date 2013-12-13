@@ -214,12 +214,14 @@ class DlocTest extends FunSuite with LocCounter {
     val res = fileResource(testFile)
     val f = launcher.load(res)
     val weightP = "// ?([.0-9]+)".r
-    val expected = Source.fromFile(testFile).getLines
+    val weights = Source.fromFile(testFile).getLines
       .map(weightP findFirstIn _)
       .collect {
         case Some(weightP(w)) => w.toDouble
-      }.foldLeft(0.0)(_ + _)
-    expect(expected)(dloc(methodNamed(f, testMethod)))
+      }.toList
+    val m = methodNamed(f, testMethod)
+    expect(weights.sum)(dloc(m))
+    expect(weights.size)(sloc(m))
   }
 
   test("sample input ") {
