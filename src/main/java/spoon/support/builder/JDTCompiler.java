@@ -224,7 +224,7 @@ public class JDTCompiler extends Main implements ICompilerRequestor {
 	
 	public void acceptResult(CompilationResult result) {
 		if (result.hasErrors()) {
-			//System.err.println(result);
+			System.err.println(result);
 			getProbs().add(result.problems);
 			success=false;
 		}
