@@ -28,15 +28,21 @@ class A {
      b.g();  // invokevirtual B.g -> +1 for overridings
      b.g();
      b.g();
-	 b.g();
+	   b.g();
+  }
+      
+  void g(IB b) {
+     b.g();
+     b.g();
   }
   public static void main(String args[]) {
      A a = new A(new B());
      a.f();
      new C().g();
-     new C().g();
+     g(new C());
   }
 }
+    
 class Base {
   void g() {
   }
@@ -47,19 +53,26 @@ class B extends Base {
     ;
   }
 }
-class C extends B {
+interface IB {
+  void g();
+  }
+class C extends B implements IB {
   @Override
   void g() { // overrides B.g()
      super.g(); // calls B.g() invokespecial
   }
+  @Override
+  public String toString() { return ""; }
 }
       """
     val f = Loader.load(src)
     val m = ncalls(f)
+    println(m)
     expect(1)(m("A.f:()V"))
     expect(5)(m("B.g:()V"))
-    expect(6)(m("C.g:()V"))
+    expect(7)(m("C.g:()V"))
     expect(1)(m("A.<init>:(LB;)V"))
+    expect(1)(m("C.toString:()Ljava/lang/String"))
   }
 
 }

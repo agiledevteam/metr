@@ -24,29 +24,30 @@ object AppMain extends AbstractLauncher with App with LocCounter with CallCounte
       c.copy(deps = c.deps ++ x.split(File.pathSeparator).map(new File(_)))
     }
   }
-  
-  var config = Config()
-  def getClasspath:String = 
-    config.deps.mkString(File.pathSeparator)
 
   // parser.parse returns Option[C]
-  parser.parse(args, config) map { config =>
-    this.config = config
-    
+  parser.parse(args, Config()) map { config =>
+    ClasspathHolder.additionalClasspath = config.deps.mkString(File.pathSeparator)
     val factory = getFactory
     val builder = factory.getBuilder
     config.src foreach (builder.addInputSource(_))
-    if (builder.build) {
-      forEachExecutables(factory) { m =>
+    builder.build
+    
+    val stat = new Stat
+    forEachExecutables(factory) { m =>
+      if (!m.isImplicit && m.getBody != null) {
         val name = nameFor(m)
         val loc1 = sloc(m)
         val loc2 = dloc(m)
-        val invokes = allInvokes(factory, m)
-        println(s"$name\t$loc1\t$loc2\t$invokes")
+        val invokes = ncalls(m)
+        if (invokes > 1)
+          println(s"${name}\t$loc1\t$loc2\t$invokes")
+        stat.add(StatEntry(name, loc1, loc2, invokes))
       }
     }
+    println(stat.report)
+
   } getOrElse {
-    // arguments are bad, error message will have been displayed
   }
 
   override def createFactory: Factory = {
@@ -54,10 +55,10 @@ object AppMain extends AbstractLauncher with App with LocCounter with CallCounte
     val factory = new Factory(new DefaultCoreFactory, env)
 
     env.setComplianceLevel(6)
-    env.setVerbose(true)
+    env.setVerbose(false)
     env.setTabulationSize(4)
     env.useTabulations(true)
-
+    env.setDebug(false)
     factory
   }
 

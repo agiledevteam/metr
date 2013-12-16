@@ -35,6 +35,9 @@ trait Naming {
 
   def nameFor[T](c: CtExecutableReference[T]): String = {
     val methodName = slash(c.getDeclaringType.getQualifiedName) + "." + c.getSimpleName
+    if (c.getParameterTypes.exists(_ == null)) {
+      println("--" + c)
+    }
     val param = c.getParameterTypes.map(nameFor(_) + ";").mkString
     val ret = if (c.isConstructor) "V" else nameFor(c.getType)
     methodName + ":(" + param + ")" + ret

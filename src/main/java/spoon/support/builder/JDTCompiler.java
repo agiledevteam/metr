@@ -38,9 +38,9 @@ import org.eclipse.jdt.internal.compiler.batch.Main;
 import org.eclipse.jdt.internal.compiler.env.INameEnvironment;
 import org.eclipse.jdt.internal.compiler.util.Util;
 
-import com.lge.metr.AppMain;
-
 import spoon.reflect.Factory;
+
+import com.lge.metr.ClasspathHolder;
 
 public class JDTCompiler extends Main implements ICompilerRequestor {
 
@@ -100,8 +100,8 @@ public class JDTCompiler extends Main implements ICompilerRequestor {
 		args.add("-enableJavadoc");
 		args.add("-noExit");
 		ClassLoader currentClassLoader = ClassLoader.getSystemClassLoader();
-		
-		String classpath = AppMain.getClasspath();
+
+		String classpath = ".";
 		if(currentClassLoader instanceof URLClassLoader){
 			URL[] urls = ((URLClassLoader) currentClassLoader).getURLs();
 			if(urls!=null && urls.length>0){
@@ -110,7 +110,9 @@ public class JDTCompiler extends Main implements ICompilerRequestor {
 				}
 			}
 		}
-		System.out.println(classpath);
+		if (!ClasspathHolder.additionalClasspath.isEmpty()) {
+		  classpath += File.pathSeparator + ClasspathHolder.additionalClasspath;
+		}
 	  args.add("-cp");
 	  args.add(classpath);
 		
@@ -222,7 +224,7 @@ public class JDTCompiler extends Main implements ICompilerRequestor {
 	
 	public void acceptResult(CompilationResult result) {
 		if (result.hasErrors()) {
-			System.err.println(result);
+			//System.err.println(result);
 			getProbs().add(result.problems);
 			success=false;
 		}
