@@ -6,8 +6,9 @@ import org.scalatest.junit.JUnitRunner
 import spoon.support.builder.CtResource
 import spoon.support.builder.support.CtVirtualFile
 import spoon.reflect.declaration.CtInterface
-import com.lge.metr.SpoonEx._
+import SpoonEx._
 import spoon.reflect.code.CtAbstractInvocation
+import spoon.reflect.declaration.CtMethod
 
 @RunWith(classOf[JUnitRunner])
 class CallCountTest extends FunSuite with CallCounter {
@@ -15,8 +16,7 @@ class CallCountTest extends FunSuite with CallCounter {
     new CtVirtualFile("public class Test{}; \n"+src, "Test.java")
   }
 
-  test("invokevirtual - direct calls") {
-    val src = """
+  val src = """
 class A {
   int a;
   B b;
@@ -62,32 +62,30 @@ class C extends B implements IB {
   public String toString() { return ""; }
 }
       """
-    val f = Loader.load(src)
-    val m = ncalls(f)
-    f.all[CtAbstractInvocation[_]].filterNot(_.isImplicit).foreach(in ¢¡ println(in.getExecutable))
-    println(m)
-    expect(1)(m("A.f:()V"))
-    expect(5)(m("B.g:()V"))
-    expect(7)(m("C.g:()V"))
-    expect(1)(m("A.<init>:(LB;)V"))
-    expect(1)(m("C.toString:()Ljava/lang/String"))
+  val factory = Loader.load(src)
+
+  test("implementing interface method") {
+    val methods = factory.all[CtMethod[_]]
+    val ifmethod = methods.find(nameFor(_) == "IB.g:()V").get
+    val implementers = methods.filter(_.isImplementing(ifmethod.getReference))
+    expect(1)(implementers.size)
+    expect("C.g:()V")(nameFor(implementers.head))
   }
 
-  test("test for factory -> List") {
-    val src = """
-interface IA {
-}
-class A implements IA {
-}
-interface IB extends IA {
-}
-class B implements IB {
-}
-      """
-    val f = Loader.load(src)
-    val ifs = f.all[CtInterface[_]]
-    expect(2)(ifs.size)
-    assert(ifs.map(_.getSimpleName).contains("IA"))
-    assert(ifs.map(_.getSimpleName).contains("IB"))
+  test("overriding") {
+    val methods = factory.all[CtMethod[_]]
+    val ifmethod = methods.find(nameFor(_) == "B.g:()V").get
+    val overridings = methods.filter(_.isOverriding(ifmethod.getReference))
+    expect(2)(overridings.size)
+    expect(Set("C.g:()V", "B.g:()V"))(overridings.map(nameFor(_)).toSet)
+  }
+
+  test("call counter") {
+    val ncalls = ncallsMap
+    expect(1)(ncalls("A.f:()V"))
+    expect(5)(ncalls("B.g:()V"))
+    expect(7)(ncalls("C.g:()V"))
+    expect(1)(ncalls("A.<init>:(LB;)V"))
+    expect(1)(ncalls("C.toString:()Ljava/lang/String"))
   }
 }

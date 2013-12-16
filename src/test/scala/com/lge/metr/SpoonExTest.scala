@@ -6,7 +6,7 @@ import org.scalatest.junit.JUnitRunner
 import spoon.support.builder.CtResource
 import spoon.support.builder.support.CtVirtualFile
 import spoon.reflect.declaration.CtInterface
-import com.lge.metr.SpoonEx._
+import SpoonEx._
 import spoon.reflect.code.CtAbstractInvocation
 
 @RunWith(classOf[JUnitRunner])

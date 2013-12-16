@@ -10,10 +10,14 @@ import spoon.support.StandardEnvironment
 import spoon.processing.Environment
 import spoon.processing.Builder
 import spoon.support.builder.SpoonBuildingManager
+import spoon.reflect.declaration.CtExecutable
+import SpoonEx._
 
 case class Config(src: Seq[File] = Seq(), deps: Seq[File] = Seq())
 
 object AppMain extends AbstractLauncher with App with LocCounter with CallCounter {
+  val factory = getFactory
+
   val parser = new scopt.OptionParser[Config]("metr") {
     head("metr", "1.0")
 
@@ -28,13 +32,11 @@ object AppMain extends AbstractLauncher with App with LocCounter with CallCounte
   // parser.parse returns Option[C]
   parser.parse(args, Config()) map { config =>
     ClasspathHolder.additionalClasspath = config.deps.mkString(File.pathSeparator)
-    val factory = getFactory
     val builder = factory.getBuilder
     config.src foreach (builder.addInputSource(_))
     builder.build
-    
     val stat = new Stat
-    forEachExecutables(factory) { m =>
+    factory.all[CtExecutable[_]].foreach { m =>
       if (!m.isImplicit && m.getBody != null) {
         val name = nameFor(m)
         val loc1 = sloc(m)
