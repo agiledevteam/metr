@@ -38,6 +38,8 @@ import org.eclipse.jdt.internal.compiler.batch.Main;
 import org.eclipse.jdt.internal.compiler.env.INameEnvironment;
 import org.eclipse.jdt.internal.compiler.util.Util;
 
+import com.lge.metr.AppMain;
+
 import spoon.reflect.Factory;
 
 public class JDTCompiler extends Main implements ICompilerRequestor {
@@ -99,19 +101,18 @@ public class JDTCompiler extends Main implements ICompilerRequestor {
 		args.add("-noExit");
 		ClassLoader currentClassLoader = ClassLoader.getSystemClassLoader();
 		
+		String classpath = AppMain.getClasspath();
 		if(currentClassLoader instanceof URLClassLoader){
 			URL[] urls = ((URLClassLoader) currentClassLoader).getURLs();
 			if(urls!=null && urls.length>0){
-				String classpath = ".";
 				for (URL url : urls) {
 					classpath+=File.pathSeparator+url.getFile();
 				}
-				if(classpath!=null){
-					args.add("-cp");
-					args.add(classpath);
-				}
 			}
 		}
+		System.out.println(classpath);
+	  args.add("-cp");
+	  args.add(classpath);
 		
 		// args.add("-nowarn");
 		args.add(f.getEnvironment().getSourcePath());
