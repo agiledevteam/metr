@@ -13,3 +13,7 @@ libraryDependencies += "fr.inria.gforge.spoon" % "spoon-core" % "1.5"
 libraryDependencies += "org.scalatest" %% "scalatest" % "1.9.1" % "test"
 
 libraryDependencies += "junit" % "junit" % "4.10" % "test"
+
+libraryDependencies += "com.github.scopt" %% "scopt" % "3.2.0"
+
+resolvers += Resolver.sonatypeRepo("public")
