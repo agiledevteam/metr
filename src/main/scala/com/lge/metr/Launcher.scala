@@ -1,6 +1,6 @@
 package com.lge.metr
 
-class Launcher(args:Array[String]) extends spoon.Launcher(args) 
+class Launcher(args:Array[String]) extends spoon.AbstractLauncher(args) 
 
 object Launcher {
   def main(args: Array[String]) = new Launcher(args).run()

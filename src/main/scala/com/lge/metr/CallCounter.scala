@@ -15,68 +15,78 @@ import spoon.reflect.declaration.CtConstructor
 import spoon.reflect.code.CtInvocation
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
+import scala.util.Try
+import scala.util.Success
+import scala.util.Failure
+import spoon.reflect.reference.CtTypeReference
+import spoon.reflect.declaration.CtInterface
+import spoon.reflect.code.CtNewClass
+import SpoonEx.FactoryOps
 
 trait CallCounter extends Naming {
 
-  class InvokeFilter[T](ref: CtExecutableReference[T], includeSuper: Boolean)
-    extends AbstractFilter[CtAbstractInvocation[T]](classOf[CtAbstractInvocation[T]]) {
-    override def matches(t: CtAbstractInvocation[T]): Boolean = {
-      if (includeSuper)
-        t.getExecutable() == ref
-      else
-        t match {
-          case in: CtInvocation[T] =>
-            t.getExecutable == ref && in.getTarget.toString != "super"
-          case ctor =>
-            t.getExecutable() == ref
+  val factory: Factory
+
+  def isSystem[T](t: CtTypeReference[T]): Boolean = {
+    val f = t.getFactory
+    val p = t.getPackage
+    p != null && !f.Package.getAllRoots.exists(_ == p)
+  }
+
+  def isOverridingSystem[T](method: CtExecutable[T]): Boolean = {
+    def loop(refTry: Try[CtExecutableReference[_]]): Boolean = refTry match {
+      case Success(ref) =>
+        if (ref == null)
+          false
+        else if (isSystem(ref.getDeclaringType))
+          true
+        else
+          loop(Try(ref.getOverridingExecutable))
+      case _ =>
+        true
+    }
+    loop(Try(method.getReference))
+  }
+
+  implicit class RichType[T](t: CtTypeReference[T]) {
+    def isInterface: Boolean = t.getDeclaration match {
+      case _: CtInterface[_] => true
+      case _ => false
+    }
+  }
+
+  implicit class RichMethod[T](t: CtMethod[T]) {
+    def isImplementing(ref: CtExecutableReference[_]): Boolean = {
+      t.getReference.isOverriding(ref) && t.getReference != ref
+    }
+    def isOverriding(ref: CtExecutableReference[_]): Boolean = {
+      t.getReference.isOverriding(ref) || t.getReference == ref
+    }
+  }
+
+  def ncalls(m: CtExecutable[_]): Int = ncallsMap(nameFor(m))
+
+  lazy val ncallsMap: Map[String, Int] = {
+    val map = scala.collection.mutable.Map[String, Int]() withDefaultValue 0
+    val methods = factory.all[CtMethod[_]]
+    factory.all[CtAbstractInvocation[_]].foreach {
+      case in: CtInvocation[_] =>
+        if (in.getTarget == null) { // super() in ctor
+          map(nameFor(in.getExecutable)) += 1
+        } else if (in.getTarget.toString == "super") { // static
+          map(nameFor(in.getExecutable)) += 1
+        } else if (in.getTarget.getType.isInterface) {
+          methods.filter(_.isImplementing(in.getExecutable)).foreach(m => map(nameFor(m)) += 1)
+        } else {
+          methods.filter(_.isOverriding(in.getExecutable)).foreach(m => map(nameFor(m)) += 1)
         }
+      case ctor =>
+        if (ctor.getExecutable != null)
+          map(nameFor(ctor.getExecutable)) += 1
     }
-  }
-
-  //
-  //  def forEachInvokes[T](m: Factory)(f: CtAbstractInvocation[_] => Unit) {
-  //    Query.getElements(m, new InvokeFilter[T](inv => { f(inv); false }))
-  //  }
-  //  
-  def forEachExecutables[T](m: Factory)(handler: CtExecutable[_] => Unit) {
-    Query.getElements(m, new AbstractFilter[CtExecutable[T]](classOf[CtExecutable[T]]) {
-      def matches(m: CtExecutable[T]): Boolean = {
-        handler(m)
-        false
-      }
-    })
-  }
-
-  implicit class ExecutableWrapper[T](exeRef: CtExecutableReference[T]) {
-    def getActual: String =
-      if (exeRef.isConstructor())
-        exeRef.getActualConstructor.toString
-      else
-        exeRef.getActualMethod.toString
-  }
-
-  def overriddensOf(m: CtMethod[_]): List[CtExecutableReference[_]] = {
-    def loop(ref: CtExecutableReference[_]): List[CtExecutableReference[_]] = {
-      if (ref == null) List()
-      else ref :: loop(ref.getOverridingExecutable)
-    }
-    loop(m.getReference)
-  }
-
-  def allInvokesTo[T](f: Factory, ref: CtExecutableReference[T], includeSuper: Boolean = true) =
-    Query.getElements(f, new InvokeFilter(ref, includeSuper)).toList
-
-  def allInvokes[T](f: Factory, m: CtExecutable[T]): Int = m match {
-    case method: CtMethod[T] =>
-      overriddensOf(method).foldLeft(0)((acc, ref) => acc + allInvokesTo(f, ref, m.getReference == ref).size)
-    case ctor: CtConstructor[T] => allInvokesTo(f, ctor.getReference).size
-  }
-
-  def ncalls(f: Factory): Map[String, Int] = {
-    val map = scala.collection.mutable.Map[String, Int]()
-    forEachExecutables(f) { m =>
-      map += (nameFor(m) -> allInvokes(f, m))
-    }
+    val (sys, non) = factory.all[CtExecutable[_]] filterNot (map contains nameFor(_)) partition (isOverridingSystem(_))
+    sys foreach { m => map(nameFor(m)) = 1 }
+    non foreach { m => map(nameFor(m)) = 0 }
     map.toMap
   }
 }
