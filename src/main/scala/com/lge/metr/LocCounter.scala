@@ -3,6 +3,7 @@ package com.lge.metr
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.collection.JavaConversions.bufferAsJavaList
 import scala.collection.mutable.ListBuffer
+import scala.language.implicitConversions
 
 import spoon.reflect.code.CtBlock
 import spoon.reflect.code.CtCase
@@ -45,7 +46,7 @@ trait LocCounter {
     case null =>
       0
     case ifStmt: CtIf =>
-      ifElseChain(ifStmt).map(then => 1 + dloc(then) * df).foldLeft(0.0)(_ + _)
+      ifElseChain(ifStmt).map(thenPart => 1 + dloc(thenPart) * df).foldLeft(0.0)(_ + _)
     case switchStmt: CtSwitch[_] =>
       switchStmt.getCases.map(c => dloc(c) * df + 1).foldLeft(1.0)(_ + _)
     case loopStmt: CtLoop =>

@@ -21,7 +21,6 @@ import scala.util.Failure
 import spoon.reflect.reference.CtTypeReference
 import spoon.reflect.declaration.CtInterface
 import spoon.reflect.code.CtNewClass
-import SpoonEx.FactoryOps
 
 trait CallCounter extends Naming {
 

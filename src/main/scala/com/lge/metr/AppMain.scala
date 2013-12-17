@@ -11,7 +11,6 @@ import spoon.processing.Environment
 import spoon.processing.Builder
 import spoon.support.builder.SpoonBuildingManager
 import spoon.reflect.declaration.CtExecutable
-import SpoonEx._
 
 case class Config(src: Seq[File] = Seq(), deps: Seq[File] = Seq())
 

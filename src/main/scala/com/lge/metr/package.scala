@@ -1,3 +1,5 @@
+package com.lge
+
 import scala.collection.JavaConversions.asScalaBuffer
 
 import spoon.reflect.Factory
@@ -5,7 +7,7 @@ import spoon.reflect.declaration.CtElement
 import spoon.reflect.visitor.Query
 import spoon.reflect.visitor.filter.AbstractFilter
 
-package object SpoonEx {
+package object metr {
   class AllFilter[T <: CtElement](cls: Class[T]) extends AbstractFilter[T](cls) {
     override def matches(e: T): Boolean = true
   }
