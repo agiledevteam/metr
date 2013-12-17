@@ -8,6 +8,7 @@ import spoon.reflect.code.CtIf
 trait CCCounter {
 
   def cc(stmt: CtStatement): Int = {
+    println(stmt)
     stmt match {
       case null => 0
       case _: CtIf => 2

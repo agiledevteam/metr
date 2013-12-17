@@ -43,8 +43,8 @@ class CCCounterTest extends FunSuite with CCCounter {
 
   def testSrc(src: String): String = {
     val header =
-      """class Loc {
-        | public void loc() {
+      """class Cc {
+        | public void cc() {
         """.stripMargin
     val footer =
       """
@@ -55,7 +55,8 @@ class CCCounterTest extends FunSuite with CCCounter {
 
   implicit def strToBlock[T, B <: T](body: String): CtBlock[B] = {
     val f = Loader.load(stringResource(testSrc(body)))
-    val m: CtMethod[T] = methodNamed[T](f, "loc")
+    val m: CtMethod[T] = methodNamed[T](f, "cc")
+    //println(m)
     m.getBody[B]
   }
 
