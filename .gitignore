@@ -3,6 +3,7 @@ target/
 lib_managed/
 
 .cache
+report.txt
 
 # spoon generated
 spooned
