@@ -58,10 +58,16 @@ class DlocTest extends FunSuite with LocCounter {
 
   test("straight forward plain loc") {
     val body = """
-      int a;
+      Runnable a = new Runnable() {
+        @Override
+        public void run() {
+          ;
+        }
+      };
       return;
       """
     expect(2)(dloc(body))
+    expect(2)(sloc(body))
   }
 
   test("if-else plain loc") {
@@ -211,7 +217,7 @@ class DlocTest extends FunSuite with LocCounter {
       }.toList
     val m = methodNamed(f, testMethod)
     expect(weights.sum)(dloc(m))
-    expect(weights.size)(sloc(m))
+    expect(weights.filter(_ != 0).size)(sloc(m))
   }
 
   test("sample input ") {

@@ -11,11 +11,20 @@ import spoon.processing.Environment
 import spoon.processing.Builder
 import spoon.support.builder.SpoonBuildingManager
 import spoon.reflect.declaration.CtExecutable
+import spoon.reflect.declaration.CtMethod
+import scala.io.Source
+import java.io.PrintWriter
+import rx.lang.scala.Observable
+import scala.collection.JavaConversions.asJavaIterable
+import rx.lang.scala.ImplicitFunctionConversions._
+import scala.collection.mutable.ListBuffer
 
-case class Config(src: Seq[File] = Seq(), deps: Seq[File] = Seq())
+case class Config(src: Seq[File] = Seq(), deps: Seq[File] = Seq(), targets: Set[String])
 
-object AppMain extends AbstractLauncher with App with LocCounter with CallCounter {
+object AppMain extends AbstractLauncher with App
+  with LocCounter with CallCounter with CCCounter {
   val factory = getFactory
+  val possibleTargets = Set("all", "dloc", "sloc", "ncalls", "report")
 
   val parser = new scopt.OptionParser[Config]("metr") {
     head("metr", "1.0")
@@ -26,26 +35,75 @@ object AppMain extends AbstractLauncher with App with LocCounter with CallCounte
     opt[String]('d', "deps") optional () valueName (s"separated list of jar-files") action { (x, c) =>
       c.copy(deps = c.deps ++ x.split(File.pathSeparator).map(new File(_)))
     }
+    opt[String]('t', "target") optional () valueName ("target metric list ") action { (x, c) =>
+      c.copy(targets = x.split(File.pathSeparator).toSet)
+    } validate { x =>
+      if (x.split(File.pathSeparator).forall(possibleTargets.contains(_))) success
+      else failure("targets should be one of " + possibleTargets)
+    }
   }
 
+  def getTargets(config: Config) =
+    if (config.targets.contains("all")) {
+      possibleTargets - "all"
+    } else {
+      config.targets
+    }
+
+  def invalidate(targets: Set[String]) {
+    targets foreach { target =>
+      new File(target + ".txt").delete
+    }
+  }
+
+  var methods: List[CtExecutable[_]] = List()
+
+  class MethodCalculatorTask(name: String, handler: CtExecutable[_] => Any) extends Task(name) {
+    def doGenerate() {
+      val p = new PrintWriter(getFile)
+      methods foreach { m =>
+        p.println(handler(m) + "\t" + nameFor(m))
+      }
+      p.close
+    }
+  }
+  val ncallsTask = new MethodCalculatorTask("ncalls", ncalls(_))
+  val slocTask = new MethodCalculatorTask("sloc", sloc(_))
+  val dlocTask = new MethodCalculatorTask("dloc", dloc(_))
+  val ccTask = new MethodCalculatorTask("cc", cc(_))
+
+  def fromFile(f: File): rx.lang.scala.Observable[String] =
+    toScalaObservable(rx.Observable.from(asJavaIterable(Source.fromFile(f).getLines.toIterable)))
+
+  val reportTask = Task("report") { self =>
+    val names = fromFile(slocTask.getFile).map(line => line.split("\t")(1))
+    val sloc = fromFile(slocTask.getFile).map(line => line.split("\t")(0).toDouble)
+    val dloc = fromFile(dlocTask.getFile).map(line => line.split("\t")(0).toDouble)
+    val ncalls = fromFile(ncallsTask.getFile).map(line => line.split("\t")(0).toInt)
+    val stat = new Stat
+    Observable.zip(names, sloc, dloc, ncalls).map((StatEntry.tupled)(_)).subscribe(
+      stat.add(_),
+      error => println("error: " + error),
+      () => { println(stat.report); stat.exportAsText("report.txt") })
+  }.dependOn(slocTask, dlocTask, ncallsTask)
+
+  val tasks = Map("report" -> reportTask,
+    "ncalls" -> ncallsTask,
+    "sloc" -> slocTask,
+    "dloc" -> dlocTask,
+    "cc" -> ccTask)
+
   // parser.parse returns Option[C]
-  parser.parse(args, Config()) map { config =>
+  parser.parse(args, Config(targets = Set("all"))) map { config =>
     ClasspathHolder.additionalClasspath = config.deps.mkString(File.pathSeparator)
     val builder = factory.getBuilder
     config.src foreach (builder.addInputSource(_))
     builder.build
-    val stat = new Stat
-    factory.all[CtExecutable[_]].foreach { m =>
-      if (!m.isImplicit && m.getBody != null) {
-        val name = nameFor(m)
-        val loc1 = sloc(m)
-        val loc2 = dloc(m)
-        val invokes = ncalls(m)
-        stat.add(StatEntry(name, loc1, loc2, invokes))
-      }
-    }
-    println(stat.report)
-    stat.exportAsText("report.txt")
+
+    val targets = getTargets(config)
+    invalidate(targets)
+    methods = factory.all[CtExecutable[_]].filter(m => !m.isImplicit && m.getBody != null)
+    targets foreach (tasks(_).generate)
   } getOrElse {
   }
 

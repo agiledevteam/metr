@@ -2,9 +2,9 @@ metr
 ====
 
 metric calculator
-* sloc - lines of code (after pretty formatting)
+* sloc - lines of code
 * dloc - dloc - check out ['What is DLOC'](https://github.com/agiledevteam/metr/wiki/What-is-DLOC%3F)
-* (not now) cc - cyclomatic complexity (modified)
+* cc - cyclomatic complexity
 * ncalls - number of calls (including calls via overriding)
 
 [![Build Status](https://travis-ci.org/agiledevteam/metr.png)](https://travis-ci.org/agiledevteam/metr)
@@ -12,7 +12,7 @@ metric calculator
 run
 ===
 
-`sbt "run -s src-roots -d dependent-jars"`
+`sbt "run -s src-roots -d dependent-jars -t report-targets"`
 
 Output:
 
@@ -31,5 +31,11 @@ Samples of Android app:
 * samples/github-android requires 'android-16'. To build `mvn package`
 * use *dex2jar* to extract jar from apk. 
 * use `-d <jar from step above>:<android.jar>` as dependencies
- 
 
+
+Notes:
+
+* `sbt update` after cloning (retrieve dependencies)
+* `sbt update/eclipse` after modifying sbt dependencies
+** requires sbt eclipse plugin
+* `sbt assembly` to make a one jar executable

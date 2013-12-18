@@ -36,11 +36,11 @@ public class LittleNested {
 									switch (new String("").length()) { // 0.03125
 									case 3: // 0.03125
 										class LocalClass { // 0.015625
-											void innerMethod() { // 0.015625
-												try { // 0.015625
+											void innerMethod() { // 0. 015625
+												try { // 0. 015625
 													
 												}
-												catch (Throwable t) { // 0.015625
+												catch (Throwable t) { // 0. 015625
 													;
 												}
 											}
