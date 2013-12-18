@@ -65,7 +65,7 @@ trait LocCounter {
       else
         loc
     case s =>
-      plainLoc(s.toString)
+      1
   }
 
   def sloc(stmt: CtStatement): Double = dloc(stmt)(1)

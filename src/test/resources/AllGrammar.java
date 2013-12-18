@@ -7,7 +7,7 @@ public class AllGrammar {
 		int  localVariableDeclarationStatement = 0; // 1
 		class ClassOrInterfaceDeclarartionStatement // 1
 		{
-			int  someField; // 1
+			int  someField; // 0 1
 		}
 				
 		{
