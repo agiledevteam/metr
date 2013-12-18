@@ -16,6 +16,8 @@ libraryDependencies += "junit" % "junit" % "4.10" % "test"
 
 libraryDependencies += "com.github.scopt" %% "scopt" % "3.2.0"
 
+libraryDependencies += "com.netflix.rxjava" % "rxjava-scala" % "0.15.1"
+
 resolvers += Resolver.sonatypeRepo("public")
 
 scalacOptions ++= Seq("-feature", "-deprecation")
