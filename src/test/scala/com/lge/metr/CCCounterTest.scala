@@ -18,6 +18,7 @@ import spoon.support.builder.support.CtFileFile
 import java.io.File
 import scala.io.Source
 import spoon.reflect.code.CtBlock
+import spoon.reflect.declaration.CtExecutable
 
 
 
@@ -31,13 +32,13 @@ class CCCounterTest extends FunSuite with CCCounter {
   def fileResource(path: String): CtFile =
     new CtFileFile(new File(path))
 
-  class MethodFilter[T](name: String) extends AbstractFilter[CtMethod[T]](classOf[CtMethod[T]]) {
-    override def matches(m: CtMethod[T]): Boolean = {
+  class MethodFilter[T](name: String) extends AbstractFilter[CtExecutable[T]](classOf[CtExecutable[T]]) {
+    override def matches(m: CtExecutable[T]): Boolean = {
       m.getSimpleName == name
     }
   }
 
-  def methodNamed[T](f: Factory, name: String): CtMethod[T] = {
+  def methodNamed[T](f: Factory, name: String): CtExecutable[T] = {
     Query.getElements(f, new MethodFilter[T](name)).head
   }
 
@@ -53,11 +54,10 @@ class CCCounterTest extends FunSuite with CCCounter {
     header + src + footer
   }
 
-  implicit def strToBlock[T, B <: T](body: String): CtBlock[B] = {
+  implicit def strToBlock[T](body: String): CtExecutable[T] = {
     val f = Loader.load(stringResource(testSrc(body)))
-    val m: CtMethod[T] = methodNamed[T](f, "cc")
-    //println(m)
-    m.getBody[B]
+    methodNamed[T](f, "cc")
+  
   }
 
 
