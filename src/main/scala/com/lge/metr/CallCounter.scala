@@ -1,27 +1,18 @@
 package com.lge.metr
 
-import spoon.reflect.Factory
-import spoon.reflect.declaration.CtMethod
-import spoon.reflect.visitor.filter.AbstractFilter
-import spoon.reflect.visitor.Query
-import spoon.reflect.visitor.filter.InvocationFilter
-import spoon.reflect.declaration.CtType
-import spoon.reflect.declaration.CtClass
 import scala.collection.JavaConversions._
-import spoon.reflect.declaration.CtExecutable
-import spoon.reflect.code.CtAbstractInvocation
-import spoon.reflect.reference.CtExecutableReference
-import spoon.reflect.declaration.CtConstructor
-import spoon.reflect.code.CtInvocation
 import scala.collection.JavaConversions._
-import scala.collection.mutable.ListBuffer
-import scala.util.Try
 import scala.util.Success
-import scala.util.Failure
-import spoon.reflect.reference.CtTypeReference
+import scala.util.Try
+
+import spoon.reflect.Factory
+import spoon.reflect.code.CtAbstractInvocation
+import spoon.reflect.code.CtInvocation
+import spoon.reflect.declaration.CtExecutable
 import spoon.reflect.declaration.CtInterface
-import spoon.reflect.code.CtNewClass
-import SpoonEx.FactoryOps
+import spoon.reflect.declaration.CtMethod
+import spoon.reflect.reference.CtExecutableReference
+import spoon.reflect.reference.CtTypeReference
 
 trait CallCounter extends Naming {
 
@@ -55,20 +46,20 @@ trait CallCounter extends Naming {
     }
   }
 
-  implicit class RichMethod[T](t: CtMethod[T]) {
-    def isImplementing(ref: CtExecutableReference[_]): Boolean = {
+  implicit class RichExecutable[T](t: CtExecutable[T]) {
+    def isImplementing(ref: CtExecutableReference[_]): Boolean =
       t.getReference.isOverriding(ref) && t.getReference != ref
-    }
-    def isOverriding(ref: CtExecutableReference[_]): Boolean = {
+    def isOverriding(ref: CtExecutableReference[_]): Boolean =
       t.getReference.isOverriding(ref) || t.getReference == ref
-    }
+    def hasBody: Boolean =
+      !t.isImplicit && t.getBody != null
   }
 
   def ncalls(m: CtExecutable[_]): Int = ncallsMap(nameFor(m))
 
   lazy val ncallsMap: Map[String, Int] = {
     val map = scala.collection.mutable.Map[String, Int]() withDefaultValue 0
-    val methods = factory.all[CtMethod[_]]
+    val methods = factory.all[CtMethod[_]] filter (_.hasBody)
     factory.all[CtAbstractInvocation[_]].foreach {
       case in: CtInvocation[_] =>
         if (in.getTarget == null) { // super() in ctor
@@ -84,7 +75,7 @@ trait CallCounter extends Naming {
         if (ctor.getExecutable != null)
           map(nameFor(ctor.getExecutable)) += 1
     }
-    val (sys, non) = factory.all[CtExecutable[_]] filterNot (map contains nameFor(_)) partition (isOverridingSystem(_))
+    val (sys, non) = factory.all[CtExecutable[_]] filter (_.hasBody) filterNot (map contains nameFor(_)) partition (isOverridingSystem(_))
     sys foreach { m => map(nameFor(m)) = 1 }
     non foreach { m => map(nameFor(m)) = 0 }
     map.toMap

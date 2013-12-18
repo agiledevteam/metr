@@ -11,7 +11,6 @@ import spoon.processing.Environment
 import spoon.processing.Builder
 import spoon.support.builder.SpoonBuildingManager
 import spoon.reflect.declaration.CtExecutable
-import SpoonEx._
 
 case class Config(src: Seq[File] = Seq(), deps: Seq[File] = Seq())
 
@@ -42,13 +41,11 @@ object AppMain extends AbstractLauncher with App with LocCounter with CallCounte
         val loc1 = sloc(m)
         val loc2 = dloc(m)
         val invokes = ncalls(m)
-        if (invokes > 1)
-          println(s"${name}\t$loc1\t$loc2\t$invokes")
         stat.add(StatEntry(name, loc1, loc2, invokes))
       }
     }
     println(stat.report)
-
+    stat.exportAsText("report.txt")
   } getOrElse {
   }
 

@@ -17,3 +17,5 @@ libraryDependencies += "junit" % "junit" % "4.10" % "test"
 libraryDependencies += "com.github.scopt" %% "scopt" % "3.2.0"
 
 resolvers += Resolver.sonatypeRepo("public")
+
+scalacOptions ++= Seq("-feature", "-deprecation")
