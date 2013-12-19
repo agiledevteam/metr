@@ -19,7 +19,10 @@ import scala.collection.JavaConversions.asJavaIterable
 import rx.lang.scala.ImplicitFunctionConversions._
 import scala.collection.mutable.ListBuffer
 
-case class Config(src: Seq[File] = Seq(), deps: Seq[File] = Seq(), targets: Set[String])
+case class Config(
+  src: Seq[File] = Seq(),
+  deps: Seq[File] = Seq(),
+  targets: Set[String])
 
 object AppMain extends AbstractLauncher with App
   with LocCounter with CallCounter with CCCounter {
@@ -49,12 +52,6 @@ object AppMain extends AbstractLauncher with App
     } else {
       config.targets
     }
-
-  def invalidate(targets: Set[String]) {
-    targets foreach { target =>
-      new File(target + ".txt").delete
-    }
-  }
 
   var methods: List[CtExecutable[_]] = List()
 
@@ -87,13 +84,13 @@ object AppMain extends AbstractLauncher with App
       () => { println(stat.report); stat.exportAsText("report.txt") })
   }.dependOn(slocTask, dlocTask, ncallsTask)
 
-  val tasks = Map("report" -> reportTask,
+  val tasks = Map(
+    "report" -> reportTask,
     "ncalls" -> ncallsTask,
     "sloc" -> slocTask,
     "dloc" -> dlocTask,
     "cc" -> ccTask)
 
-  // parser.parse returns Option[C]
   parser.parse(args, Config(targets = Set("all"))) map { config =>
     ClasspathHolder.additionalClasspath = config.deps.mkString(File.pathSeparator)
     val builder = factory.getBuilder
@@ -101,7 +98,7 @@ object AppMain extends AbstractLauncher with App
     builder.build
 
     val targets = getTargets(config)
-    invalidate(targets)
+    targets foreach (tasks(_).clean)
     methods = factory.all[CtExecutable[_]].filter(m => !m.isImplicit && m.getBody != null)
     targets foreach (tasks(_).generate)
   } getOrElse {

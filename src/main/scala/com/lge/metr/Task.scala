@@ -19,14 +19,15 @@ abstract class Task(name: String) {
     this
   }
 
-  def invalidate() {
+  def clean() {
+    getFile.delete()
   }
-  
+
   def getFile: File = new File(name + ".txt")
 }
 
 object Task {
-  def apply(name : String)(body: Task => Unit): Task = new Task(name) {
+  def apply(name: String)(body: Task => Unit): Task = new Task(name) {
     def doGenerate() {
       body(this)
     }

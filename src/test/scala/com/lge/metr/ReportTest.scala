@@ -16,6 +16,6 @@ class ReportTest extends FunSuite {
 
     List(sloc, dloc, ncalls).foreach(report.dependOn(_))
     report.generate
-    expect(List(sloc, dloc, ncalls, report))(generated)
+    expectResult(List(sloc, dloc, ncalls, report))(generated)
   }
 }
