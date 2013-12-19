@@ -1,13 +1,18 @@
 package com.lge.metr
 
+import scala.collection.JavaConversions.asScalaBuffer
+import scala.collection.JavaConversions.asScalaSet
 import scala.language.implicitConversions
-
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
-import org.scalatest.junit.JUnitRunner
-
+import spoon.reflect.declaration.CtClass
+import spoon.reflect.declaration.CtSimpleType
+import spoon.reflect.reference.CtTypeReference
 import spoon.support.builder.CtResource
 import spoon.support.builder.support.CtVirtualFile
+import spoon.reflect.declaration.CtType
+import org.scalatest.junit.JUnitRunner
+import scala.collection.mutable.ListBuffer
 
 @RunWith(classOf[JUnitRunner])
 class CallCountTest extends FunSuite with CallCounter {
@@ -52,6 +57,9 @@ class B extends Base {
 interface IB {
   void g();
 }
+interface IB2 extends IB {
+  void g2();
+}
 class C extends B implements IB {
   @Override
   void g() {
@@ -59,6 +67,14 @@ class C extends B implements IB {
   }
   @Override
   public String toString() { return ""; }
+}
+class D implements IB2 {
+  @Override
+  void g() {
+  }
+  @Override
+  void g2() {
+  } 
 }
       """
 
@@ -71,5 +87,12 @@ class C extends B implements IB {
     expectResult(7)(ncalls("C.g:()V"))
     expectResult(1)(ncalls("A.<init>:(LB;)V"))
     expectResult(1)(ncalls("C.toString:()Ljava/lang/String"))
+  }
+
+
+  test("hierarchy") {
+    val depends = buildTypeHierarchy
+    println(depends)
+    //println(factory.Class.getAll.map(_.getSimpleName))
   }
 }

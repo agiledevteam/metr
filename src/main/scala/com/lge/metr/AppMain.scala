@@ -111,6 +111,7 @@ object AppMain extends SpoonLauncher with App
       println("generating " + t.getFile + " ...")
       t.generate
     }
+    println("done.")
   } getOrElse {
   }
 

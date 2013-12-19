@@ -48,33 +48,45 @@ trait CallCounter extends Naming {
 
   def ncalls(m: CtExecutable[_]): Int = ncallsMap(nameFor(m))
 
-  lazy val ncallsMap: Map[String, Int] = {
+  def getSupers(t: CtTypeReference[_]): List[CtTypeReference[_]] =
+    if (t.getSuperclass != null)
+      t.getSuperclass :: t.getSuperInterfaces.toList
+    else
+      t.getSuperInterfaces.toList
 
-    def hasBody[T <: CtExecutable[_]](t: T): Boolean = !t.isImplicit && t.getBody != null
+  def buildTypeHierarchy: Map[CtTypeReference[_], Set[CtTypeReference[_]]] = {
+    val depends = scala.collection.mutable.Map[CtTypeReference[_], Set[CtTypeReference[_]]]() withDefaultValue {
+      Set()
+    }
+    def addDependToSupers(t: CtTypeReference[_]) {
+      def toSuper(sub: CtTypeReference[_]) {
+        getSupers(sub).foreach { sup =>
+          depends(sup) = depends(sup) + t
+          toSuper(sup)
+        }
+      }
+      toSuper(t)
+    }
+    for {
+      c <- factory.Class.getAll if !c.getReference.isInterface
+    } addDependToSupers(c.getReference)
+    
+    depends.toMap withDefaultValue { Set() }
+  }
+
+  def hasBody[T <: CtExecutable[_]](t: T): Boolean = !t.isImplicit && t.getBody != null
+
+  lazy val ncallsMap: Map[String, Int] = {
+    val depends = buildTypeHierarchy
 
     val methods = factory.all[CtMethod[_]] filter (hasBody)
 
-    val overridingMethods: scala.collection.mutable.Map[String, List[CtExecutableReference[T] forSome { type T }]] =
-      scala.collection.mutable.Map[String, List[CtExecutableReference[T] forSome { type T }]]()
-
-    def getOverridings(ref: CtExecutableReference[T] forSome { type T}) = {
-      val name = nameFor(ref)
-      if (!overridingMethods.contains(name)) {
-        val result = for { 
-          m <- methods if m.getReference.isOverriding(ref) && m.getReference != ref
-        } yield m.getReference
-        overridingMethods(name) = result 
-        result
-      } else {
-        overridingMethods(name)
-      }
+    def overriding(ref: CtExecutableReference[T] forSome { type T }): Set[CtExecutableReference[_]] = {
+      for {
+        t <- depends(ref.getDeclaringType)
+        e <- t.getDeclaredExecutables if e.isOverriding(ref)
+      } yield e
     }
-
-    def implementing(ref: CtExecutableReference[T] forSome { type T }) = 
-      getOverridings(ref)
-
-    def overriding(ref: CtExecutableReference[T] forSome { type T }) = 
-      ref :: getOverridings(ref)
 
     val counter = scala.collection.mutable.Map[String, Int]() withDefaultValue 0
     def inc(inv: CtExecutableReference[T] forSome { type T }): Unit =
@@ -87,8 +99,9 @@ trait CallCounter extends Naming {
         } else if (in.getTarget.toString == "super") { // static
           inc(in.getExecutable)
         } else if (in.getTarget.getType.isInterface) {
-          implementing(in.getExecutable).foreach(inc(_))
+          overriding(in.getExecutable).foreach(inc(_))
         } else {
+          inc(in.getExecutable)
           overriding(in.getExecutable).foreach(inc(_))
         }
       case ctor =>
@@ -100,4 +113,5 @@ trait CallCounter extends Naming {
     non foreach { m => counter(nameFor(m)) = 0 }
     counter.toMap
   }
+
 }
