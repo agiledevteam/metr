@@ -24,7 +24,7 @@ case class Config(src: Seq[File] = Seq(), deps: Seq[File] = Seq(), targets: Set[
 object AppMain extends AbstractLauncher with App
   with LocCounter with CallCounter with CCCounter {
   val factory = getFactory
-  val possibleTargets = Set("all", "dloc", "sloc", "ncalls", "report")
+  val possibleTargets = Set("all", "cc", "dloc", "sloc", "ncalls", "report")
 
   val parser = new scopt.OptionParser[Config]("metr") {
     head("metr", "1.0")
