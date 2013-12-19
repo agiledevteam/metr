@@ -24,7 +24,7 @@ case class Config(
   deps: Seq[File] = Seq(),
   targets: Set[String])
 
-object AppMain extends AbstractLauncher with App
+object AppMain extends SpoonLauncher with App
   with LocCounter with CallCounter with CCCounter {
   val factory = getFactory
   val possibleTargets = Set("all", "cc", "dloc", "sloc", "ncalls", "report")
@@ -43,6 +43,9 @@ object AppMain extends AbstractLauncher with App
     } validate { x =>
       if (x.split(File.pathSeparator).forall(possibleTargets.contains(_))) success
       else failure("targets should be one of " + possibleTargets)
+    }
+    opt[String]('f', "file") optional () valueName ("files for config") action { (x, c) =>
+      c // TODO read config from specified file
     }
   }
 
@@ -92,28 +95,23 @@ object AppMain extends AbstractLauncher with App
     "cc" -> ccTask)
 
   parser.parse(args, Config(targets = Set("all"))) map { config =>
-    ClasspathHolder.additionalClasspath = config.deps.mkString(File.pathSeparator)
-    val builder = factory.getBuilder
-    config.src foreach (builder.addInputSource(_))
-    builder.build
+    val targets = getTargets(config).map(tasks)
 
-    val targets = getTargets(config)
-    targets foreach (tasks(_).clean)
+    targets foreach { t =>
+      println("clean " + t.getFile)
+      t.clean
+    }
+
+    println("loading...")
+    process(config.src, config.deps)
+    println("processed.")
+
     methods = factory.all[CtExecutable[_]].filter(m => !m.isImplicit && m.getBody != null)
-    targets foreach (tasks(_).generate)
+    targets foreach { t =>
+      println("generating " + t.getFile + " ...")
+      t.generate
+    }
   } getOrElse {
-  }
-
-  override def createFactory: Factory = {
-    val env = new StandardEnvironment
-    val factory = new Factory(new DefaultCoreFactory, env)
-
-    env.setComplianceLevel(6)
-    env.setVerbose(false)
-    env.setTabulationSize(4)
-    env.useTabulations(true)
-    env.setDebug(false)
-    factory
   }
 
 }

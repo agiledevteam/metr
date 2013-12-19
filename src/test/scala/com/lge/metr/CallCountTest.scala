@@ -1,18 +1,18 @@
 package com.lge.metr
 
+import scala.language.implicitConversions
+
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
+
 import spoon.support.builder.CtResource
 import spoon.support.builder.support.CtVirtualFile
-import spoon.reflect.declaration.CtInterface
-import spoon.reflect.code.CtAbstractInvocation
-import spoon.reflect.declaration.CtMethod
 
 @RunWith(classOf[JUnitRunner])
 class CallCountTest extends FunSuite with CallCounter {
   implicit def sourceToResource(src: String): CtResource = {
-    new CtVirtualFile("public class Test{}; \n"+src, "Test.java")
+    new CtVirtualFile("public class Test{}; \n" + src, "Test.java")
   }
 
   val src = """
@@ -61,30 +61,15 @@ class C extends B implements IB {
   public String toString() { return ""; }
 }
       """
+
   val factory = Loader.load(src)
-
-  test("implementing interface method") {
-    val methods = factory.all[CtMethod[_]]
-    val ifmethod = methods.find(nameFor(_) == "IB.g:()V").get
-    val implementers = methods.filter(_.isImplementing(ifmethod.getReference))
-    expect(1)(implementers.size)
-    expect("C.g:()V")(nameFor(implementers.head))
-  }
-
-  test("overriding") {
-    val methods = factory.all[CtMethod[_]]
-    val ifmethod = methods.find(nameFor(_) == "B.g:()V").get
-    val overridings = methods.filter(_.isOverriding(ifmethod.getReference))
-    expect(2)(overridings.size)
-    expect(Set("C.g:()V", "B.g:()V"))(overridings.map(nameFor(_)).toSet)
-  }
 
   test("call counter") {
     val ncalls = ncallsMap
-    expect(1)(ncalls("A.f:()V"))
-    expect(5)(ncalls("B.g:()V"))
-    expect(7)(ncalls("C.g:()V"))
-    expect(1)(ncalls("A.<init>:(LB;)V"))
-    expect(1)(ncalls("C.toString:()Ljava/lang/String"))
+    expectResult(1)(ncalls("A.f:()V"))
+    expectResult(5)(ncalls("B.g:()V"))
+    expectResult(7)(ncalls("C.g:()V"))
+    expectResult(1)(ncalls("A.<init>:(LB;)V"))
+    expectResult(1)(ncalls("C.toString:()Ljava/lang/String"))
   }
 }
