@@ -51,7 +51,7 @@ class DlocTest extends FunSuite with LocCounter {
   }
 
   implicit def strToBlock[T, B <: T](body: String): CtBlock[B] = {
-    val f = Loader.load(stringResource(testSrc(body)))
+    val f = SpoonLauncher(stringResource(testSrc(body)))
     val m: CtMethod[T] = methodNamed[T](f, "loc")
     m.getBody[B]
   }
@@ -208,7 +208,7 @@ class DlocTest extends FunSuite with LocCounter {
 
   def checkFile(testFile: String, testMethod: String) {
     val res = fileResource(testFile)
-    val f = Loader.load(res)
+    val f = SpoonLauncher(res)
     val weightP = "// ?([.0-9]+)".r
     val weights = Source.fromFile(testFile).getLines
       .map(weightP findFirstIn _)

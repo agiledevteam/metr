@@ -55,7 +55,7 @@ class CCCounterTest extends FunSuite with CCCounter {
   }
 
   implicit def strToBlock[T](body: String): CtExecutable[T] = {
-    val f = Loader.load(stringResource(testSrc(body)))
+    val f = SpoonLauncher(stringResource(testSrc(body)))
     methodNamed[T](f, "cc")
   }
 

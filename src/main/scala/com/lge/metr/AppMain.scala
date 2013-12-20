@@ -26,7 +26,6 @@ case class Config(
 
 object AppMain extends SpoonLauncher with App
   with LocCounter with CallCounter with CCCounter {
-  val factory = getFactory
   val possibleTargets = Set("all", "cc", "dloc", "sloc", "ncalls", "report")
 
   val parser = new scopt.OptionParser[Config]("metr") {
@@ -103,7 +102,7 @@ object AppMain extends SpoonLauncher with App
     }
 
     println("loading...")
-    process(config.src, config.deps)
+    batch(config.src, config.deps)
     println("processed.")
 
     methods = factory.all[CtExecutable[_]].filter(m => !m.isImplicit && m.getBody != null)

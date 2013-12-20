@@ -83,7 +83,7 @@ class D implements IB2 {
 }
       """
 
-  val factory = Loader.load(src)
+  val factory = SpoonLauncher(src)
 
   test("call counter") {
     expectResult(1)(ncalls("A.f:()V"))

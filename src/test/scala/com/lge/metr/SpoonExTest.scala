@@ -25,7 +25,7 @@ interface IB extends IA {
 class B implements IB {
 }
       """
-    val f = Loader.load(src)
+    val f = SpoonLauncher(src)
     val ifs = f.all[CtInterface[_]]
     expect(2)(ifs.size)
     assert(ifs.map(_.getSimpleName).contains("IA"))

@@ -69,7 +69,7 @@ class B {
   }
 }
       """
-    val f = Loader.load(src)
+    val f = SpoonLauncher(src)
     expect("test/B.g:(I;)V")(nameFor(invokeTo(f, "B", "g").getExecutable))
     expect("test/A.f:()V")(nameFor(invokeTo(f, "A", "f").getExecutable))
     expect("test/A$C.c:()Ltest/B")(nameFor(invokeTo(f, "C", "c").getExecutable))
