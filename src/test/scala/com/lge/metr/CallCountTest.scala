@@ -53,11 +53,15 @@ class A {
 }
     
 class Base {
-  void g() { }
+  public void g() { }
 }
 class B extends Base {
   @Override
-  void g() { }
+  public void g() { }
+  
+  public void f() {
+    g();
+  }
 }
 interface IB {
   void g();
@@ -84,11 +88,11 @@ class D implements IB2 {
       """
 
   val factory = SpoonLauncher(src)
-
+  ncallsMap.foreach(println)
   test("call counter") {
     expectResult(1)(ncalls("A.f:()V"))
-    expectResult(5)(ncalls("B.g:()V"))
-    expectResult(7)(ncalls("C.g:()V"))
+    expectResult(6)(ncalls("B.g:()V"))
+    expectResult(8)(ncalls("C.g:()V"))
     expectResult(1)(ncalls("A.<init>:(LB;)V"))
     expectResult(1)(ncalls("C.toString:()Ljava/lang/String"))
   }

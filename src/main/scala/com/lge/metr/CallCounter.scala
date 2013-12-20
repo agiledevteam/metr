@@ -15,6 +15,8 @@ import spoon.reflect.reference.CtTypeReference
 import scala.collection.mutable.ListBuffer
 import spoon.reflect.declaration.CtSimpleType
 import spoon.reflect.declaration.CtClass
+import spoon.reflect.code.CtNewClass
+import spoon.reflect.declaration.CtConstructor
 
 trait CallCounter {
 
@@ -97,6 +99,16 @@ trait CallCounter {
 
   def hasBody[T <: CtExecutable[_]](t: T): Boolean = !t.isImplicit && t.getBody != null
 
+  def invokestatic(in: CtInvocation[_]): Boolean = {
+    val ex = in.getExecutable
+    ex.isStatic || ex.getSimpleName == "<init>"
+  }
+  def invokespecial(in: CtInvocation[_]): Boolean = {
+    in.getTarget != null && in.getTarget.toString == "super"
+  }
+  def invokeinterface(in: CtInvocation[_]): Boolean = {
+    in.getTarget != null && in.getTarget.getType.isInterface
+  }
   lazy val ncallsMap: Map[CtExecutableReference[_], Int] = {
     val depends = buildTypeHierarchy
     def overriding(ref: CtExecutableReference[_]): Set[CtExecutableReference[_]] =
@@ -109,11 +121,11 @@ trait CallCounter {
 
     factory.all[CtAbstractInvocation[_]].foreach {
       case in: CtInvocation[_] =>
-        if (in.getTarget == null) { // invokestatic
+        if (invokestatic(in)) { // invokestatic
           counter(in.getExecutable) += 1
-        } else if (in.getTarget.toString == "super") { // invokespecial
+        } else if (invokespecial(in)) { // invokespecial
           counter(in.getExecutable) += 1
-        } else if (in.getTarget.getType.isInterface) { // invokeinterface
+        } else if (invokeinterface(in)) { // invokeinterface
           overriding(in.getExecutable).foreach(counter(_) += 1)
         } else { // invokedynamic
           counter(in.getExecutable) += 1

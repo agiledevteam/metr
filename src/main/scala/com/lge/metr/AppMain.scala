@@ -25,7 +25,7 @@ case class Config(
   targets: Set[String])
 
 object AppMain extends SpoonLauncher with App
-  with LocCounter with CallCounter with CCCounter {
+  with LocCounter with CallCounter with CCCounter with Naming {
   val possibleTargets = Set("all", "cc", "dloc", "sloc", "ncalls", "report")
 
   val parser = new scopt.OptionParser[Config]("metr") {

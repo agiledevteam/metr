@@ -1,15 +1,19 @@
 package com.lge
 
 import scala.collection.JavaConversions.asScalaBuffer
-
 import com.lge.metr.Naming
-
 import spoon.reflect.Factory
 import spoon.reflect.declaration.CtElement
 import spoon.reflect.visitor.Query
 import spoon.reflect.visitor.filter.AbstractFilter
+import spoon.reflect.code.CtAbstractInvocation
+import spoon.reflect.code.CtInvocation
+import spoon.reflect.declaration.CtMethod
+import spoon.reflect.code.CtNewClass
+import spoon.reflect.declaration.CtExecutable
+import spoon.reflect.declaration.CtConstructor
 
-package object metr extends Naming {
+package object metr {
   class AllFilter[T <: CtElement](cls: Class[T]) extends AbstractFilter[T](cls) {
     override def matches(e: T): Boolean = true
   }
