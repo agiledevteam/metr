@@ -13,11 +13,16 @@ import spoon.support.builder.support.CtVirtualFile
 import spoon.reflect.declaration.CtType
 import org.scalatest.junit.JUnitRunner
 import scala.collection.mutable.ListBuffer
+import spoon.reflect.declaration.CtMethod
+import spoon.reflect.declaration.CtExecutable
 
 @RunWith(classOf[JUnitRunner])
-class CallCountTest extends FunSuite with CallCounter {
+class CallCountTest extends FunSuite with CallCounter with Naming {
   implicit def sourceToResource(src: String): CtResource = {
     new CtVirtualFile("public class Test{}; \n" + src, "Test.java")
+  }
+  implicit def nameToExecutable(name: String): CtExecutable[_] = {
+    factory.all[CtExecutable[_]].find(nameFor(_) == name).get
   }
 
   val src = """
@@ -62,7 +67,7 @@ interface IB2 extends IB {
 }
 class C extends B implements IB {
   @Override
-  void g() {
+  public void g() {
      super.g(); // B.g
   }
   @Override
@@ -70,10 +75,10 @@ class C extends B implements IB {
 }
 class D implements IB2 {
   @Override
-  void g() {
+  public void g() {
   }
   @Override
-  void g2() {
+  public void g2() {
   } 
 }
       """
@@ -81,18 +86,10 @@ class D implements IB2 {
   val factory = Loader.load(src)
 
   test("call counter") {
-    val ncalls = ncallsMap
     expectResult(1)(ncalls("A.f:()V"))
     expectResult(5)(ncalls("B.g:()V"))
     expectResult(7)(ncalls("C.g:()V"))
     expectResult(1)(ncalls("A.<init>:(LB;)V"))
     expectResult(1)(ncalls("C.toString:()Ljava/lang/String"))
-  }
-
-
-  test("hierarchy") {
-    val depends = buildTypeHierarchy
-    println(depends)
-    //println(factory.Class.getAll.map(_.getSimpleName))
   }
 }

@@ -5,10 +5,13 @@ import spoon.reflect.reference.CtExecutableReference
 import spoon.reflect.reference.CtTypeReference
 import scala.collection.JavaConversions._
 import spoon.reflect.reference.CtArrayTypeReference
+import spoon.reflect.code.CtAbstractInvocation
 
 trait Naming {
   def nameFor[T](c: CtExecutable[T]): String =
     nameFor(c.getReference)
+  def nameFor[T](c: CtAbstractInvocation[T]): String =
+    nameFor(c.getExecutable)
 
   def encodeArrayType[T](c: CtTypeReference[T]): String = c match {
     case ac: CtArrayTypeReference[T] => "[" * ac.getDimensionCount()

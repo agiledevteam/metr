@@ -13,8 +13,10 @@ import spoon.reflect.declaration.CtMethod
 import spoon.reflect.reference.CtExecutableReference
 import spoon.reflect.reference.CtTypeReference
 import scala.collection.mutable.ListBuffer
+import spoon.reflect.declaration.CtSimpleType
+import spoon.reflect.declaration.CtClass
 
-trait CallCounter extends Naming {
+trait CallCounter {
 
   val factory: Factory
 
@@ -46,71 +48,86 @@ trait CallCounter extends Naming {
     }
   }
 
-  def ncalls(m: CtExecutable[_]): Int = ncallsMap(nameFor(m))
-
-  def getSupers(t: CtTypeReference[_]): List[CtTypeReference[_]] =
-    if (t.getSuperclass != null)
-      t.getSuperclass :: t.getSuperInterfaces.toList
-    else
-      t.getSuperInterfaces.toList
+  def ncalls(m: CtExecutable[_]): Int = ncallsMap(m.getReference)
 
   def buildTypeHierarchy: Map[CtTypeReference[_], Set[CtTypeReference[_]]] = {
-    val depends = scala.collection.mutable.Map[CtTypeReference[_], Set[CtTypeReference[_]]]() withDefaultValue {
+
+    val supers, depends = scala.collection.mutable.Map[CtTypeReference[_], Set[CtTypeReference[_]]]() withDefaultValue {
       Set()
     }
+
+    val declared = factory.Class.getAll(true).toList
+    val declaredRefs = declared.map(_.getReference)
+
+    // getSupers from CtSimpleType doesn't require reflection
+    def getSupers(c: CtSimpleType[_]): Set[CtTypeReference[_]] = c match {
+      case cls: CtClass[_] =>
+        if (cls.getSuperclass == null)
+          cls.getSuperInterfaces.toSet
+        else
+          cls.getSuperInterfaces.toSet + cls.getSuperclass
+      case iface: CtInterface[_] =>
+        iface.getSuperInterfaces.toSet
+      case _ =>
+        Set()
+    }
+
     def addDependToSupers(t: CtTypeReference[_]) {
       def toSuper(sub: CtTypeReference[_]) {
-        getSupers(sub).foreach { sup =>
+        supers(sub) foreach { sup =>
           depends(sup) = depends(sup) + t
           toSuper(sup)
         }
       }
       toSuper(t)
     }
+
+    // build supers map (restricting declared types only)
     for {
-      c <- factory.Class.getAll if !c.getReference.isInterface
-    } addDependToSupers(c.getReference)
-    
+      c <- declared
+    } supers(c.getReference) = getSupers(c).filter(declaredRefs.contains(_))
+
+    // build dependents map
+    for {
+      c <- declaredRefs if !c.isInterface
+    } addDependToSupers(c)
+
     depends.toMap withDefaultValue { Set() }
   }
 
   def hasBody[T <: CtExecutable[_]](t: T): Boolean = !t.isImplicit && t.getBody != null
 
-  lazy val ncallsMap: Map[String, Int] = {
+  lazy val ncallsMap: Map[CtExecutableReference[_], Int] = {
     val depends = buildTypeHierarchy
-
-    val methods = factory.all[CtMethod[_]] filter (hasBody)
-
-    def overriding(ref: CtExecutableReference[T] forSome { type T }): Set[CtExecutableReference[_]] = {
+    def overriding(ref: CtExecutableReference[_]): Set[CtExecutableReference[_]] =
       for {
         t <- depends(ref.getDeclaringType)
         e <- t.getDeclaredExecutables if e.isOverriding(ref)
       } yield e
-    }
 
-    val counter = scala.collection.mutable.Map[String, Int]() withDefaultValue 0
-    def inc(inv: CtExecutableReference[T] forSome { type T }): Unit =
-      counter(nameFor(inv)) += 1
+    val counter = scala.collection.mutable.Map[CtExecutableReference[_], Int]() withDefaultValue 0
 
     factory.all[CtAbstractInvocation[_]].foreach {
       case in: CtInvocation[_] =>
-        if (in.getTarget == null) { // super() in ctor
-          inc(in.getExecutable)
-        } else if (in.getTarget.toString == "super") { // static
-          inc(in.getExecutable)
-        } else if (in.getTarget.getType.isInterface) {
-          overriding(in.getExecutable).foreach(inc(_))
-        } else {
-          inc(in.getExecutable)
-          overriding(in.getExecutable).foreach(inc(_))
+        if (in.getTarget == null) { // invokestatic
+          counter(in.getExecutable) += 1
+        } else if (in.getTarget.toString == "super") { // invokespecial
+          counter(in.getExecutable) += 1
+        } else if (in.getTarget.getType.isInterface) { // invokeinterface
+          overriding(in.getExecutable).foreach(counter(_) += 1)
+        } else { // invokedynamic
+          counter(in.getExecutable) += 1
+          overriding(in.getExecutable).foreach(counter(_) += 1)
         }
       case ctor =>
         if (ctor.getExecutable != null)
-          inc(ctor.getExecutable)
+          counter(ctor.getExecutable) += 1
     }
-    val (sys, non) = factory.all[CtExecutable[_]] filter (hasBody) filterNot (counter contains nameFor(_)) partition (isOverridingSystem(_))
-    sys foreach { m => counter(nameFor(m)) = 1 }
-    non foreach { m => counter(nameFor(m)) = 0 }
+    val allExe = factory.all[CtExecutable[_]] filter (hasBody)
+    val notCalled = allExe filterNot (e => counter.contains(e.getReference))
+    notCalled foreach { e =>
+      counter(e.getReference) = if (isOverridingSystem(e)) 1 else 0
+    }
     counter.toMap
   }
 
