@@ -48,68 +48,20 @@ object AppMain extends SpoonLauncher with App
     }
   }
 
-  def getTargets(config: Config) =
-    if (config.targets.contains("all")) {
-      possibleTargets - "all"
-    } else {
-      config.targets
-    }
-
-  var methods: List[CtExecutable[_]] = List()
-
-  class MethodCalculatorTask(name: String, handler: CtExecutable[_] => Any) extends Task(name) {
-    def doGenerate() {
-      val p = new PrintWriter(getFile)
-      methods foreach { m =>
-        p.println(handler(m) + "\t" + nameFor(m))
-      }
-      p.close
-    }
-  }
-  val ncallsTask = new MethodCalculatorTask("ncalls", ncalls(_))
-  val slocTask = new MethodCalculatorTask("sloc", sloc(_))
-  val dlocTask = new MethodCalculatorTask("dloc", dloc(_))
-  val ccTask = new MethodCalculatorTask("cc", cc(_))
-
-  def fromFile(f: File): rx.lang.scala.Observable[String] =
-    toScalaObservable(rx.Observable.from(asJavaIterable(Source.fromFile(f).getLines.toIterable)))
-
-  val reportTask = Task("report") { self =>
-    val names = fromFile(slocTask.getFile).map(line => line.split("\t")(1))
-    val sloc = fromFile(slocTask.getFile).map(line => line.split("\t")(0).toDouble)
-    val dloc = fromFile(dlocTask.getFile).map(line => line.split("\t")(0).toDouble)
-    val ncalls = fromFile(ncallsTask.getFile).map(line => line.split("\t")(0).toInt)
-    val stat = new Stat
-    Observable.zip(names, sloc, dloc, ncalls).map((StatEntry.tupled)(_)).subscribe(
-      stat.add(_),
-      error => println("error: " + error),
-      () => { println(stat.report); stat.exportAsText("report.txt") })
-  }.dependOn(slocTask, dlocTask, ncallsTask)
-
-  val tasks = Map(
-    "report" -> reportTask,
-    "ncalls" -> ncallsTask,
-    "sloc" -> slocTask,
-    "dloc" -> dlocTask,
-    "cc" -> ccTask)
-
   parser.parse(args, Config(targets = Set("all"))) map { config =>
-    val targets = getTargets(config).map(tasks)
-
-    targets foreach { t =>
-      println("clean " + t.getFile)
-      t.clean
-    }
-
     println("loading...")
     batch(config.src, config.deps)
-    println("processed.")
 
-    methods = factory.all[CtExecutable[_]].filter(m => !m.isImplicit && m.getBody != null)
-    targets foreach { t =>
-      println("generating " + t.getFile + " ...")
-      t.generate
+    val methods = factory.all[CtExecutable[_]].filter(m => !m.isImplicit && m.getBody != null)
+
+    val handlers: List[CtExecutable[_] => Any] = List(sloc(_), dloc(_), ncalls(_), cc(_), nameFor(_))
+    println("generating...")
+    val p = new PrintWriter("report.txt")
+    methods foreach { m =>
+      p.println(handlers.map(h => h(m)).mkString("\t"))
     }
+    p.close
+
     println("done.")
   } getOrElse {
   }

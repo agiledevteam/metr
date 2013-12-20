@@ -52,7 +52,7 @@ trait CallCounter {
   }
 
   def ncalls(m: CtExecutable[_]): Int = ncallsMap(m.getReference)
-
+  var requestFuture: CtSimpleType[_] = null
   def buildTypeHierarchy: Map[CtTypeReference[_], Set[CtClass[_]]] = {
     val supers = scala.collection.mutable.Map[CtSimpleType[_], Set[CtSimpleType[_]]]() withDefaultValue {
       Set()
@@ -78,7 +78,7 @@ trait CallCounter {
         case _ =>
           Set()
       }
-      getSuperRefs(c).collect {  // filter: types declared only
+      getSuperRefs(c).collect { // filter: types declared only
         case ref if refToType.contains(ref) => refToType(ref)
       }
     }
@@ -93,6 +93,9 @@ trait CallCounter {
       def toSuper(sub: CtSimpleType[_]) {
         supers(sub) foreach { sup =>
           depends(sup.getReference) = depends(sup.getReference) + t
+          if (sup.getSimpleName == "RequestFuture") {
+            requestFuture = sup
+          }
           toSuper(sup)
         }
       }
@@ -106,8 +109,11 @@ trait CallCounter {
     depends.toMap withDefaultValue { Set() }
   }
 
+  def signatureOf(r: CtExecutableReference[_]): String =
+    r.toString.dropWhile(_ != '#')
+
   def isOverriding(a: CtMethod[_], b: CtExecutableReference[_]): Boolean = {
-    a.getSignature == b.getDeclaration.getSignature
+    signatureOf(a.getReference) == signatureOf(b)
   }
 
   def hasBody[T <: CtExecutable[_]](t: T): Boolean = !t.isImplicit && t.getBody != null
@@ -125,6 +131,7 @@ trait CallCounter {
 
   lazy val ncallsMap: Map[CtExecutableReference[_], Int] = {
     val depends = buildTypeHierarchy
+
     def overriding(ref: CtExecutableReference[_]): Set[CtExecutableReference[_]] =
       for {
         t <- depends(ref.getDeclaringType)
