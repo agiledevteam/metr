@@ -17,6 +17,7 @@ import spoon.reflect.declaration.CtSimpleType
 import spoon.reflect.declaration.CtClass
 import spoon.reflect.code.CtNewClass
 import spoon.reflect.declaration.CtConstructor
+import com.sun.corba.se.pept.transport.ContactInfo
 
 trait CallCounter {
 
@@ -52,49 +53,61 @@ trait CallCounter {
 
   def ncalls(m: CtExecutable[_]): Int = ncallsMap(m.getReference)
 
-  def buildTypeHierarchy: Map[CtTypeReference[_], Set[CtTypeReference[_]]] = {
-
-    val supers, depends = scala.collection.mutable.Map[CtTypeReference[_], Set[CtTypeReference[_]]]() withDefaultValue {
+  def buildTypeHierarchy: Map[CtTypeReference[_], Set[CtClass[_]]] = {
+    val supers = scala.collection.mutable.Map[CtSimpleType[_], Set[CtSimpleType[_]]]() withDefaultValue {
       Set()
     }
-
-    val declared = factory.Class.getAll(true).toList
-    val declaredRefs = declared.map(_.getReference)
+    val depends = scala.collection.mutable.Map[CtTypeReference[_], Set[CtClass[_]]]() withDefaultValue {
+      Set()
+    }
+    val declared = factory.Class.getAll(true).toSet ++
+      factory.all[CtNewClass[_]].map(_.getAnonymousClass).filter(_ != null)
+    val refToType: Map[CtTypeReference[_], CtSimpleType[_]] =
+      (for (c <- declared) yield (c.getReference, c)).toMap
 
     // getSupers from CtSimpleType doesn't require reflection
-    def getSupers(c: CtSimpleType[_]): Set[CtTypeReference[_]] = c match {
-      case cls: CtClass[_] =>
-        if (cls.getSuperclass == null)
-          cls.getSuperInterfaces.toSet
-        else
-          cls.getSuperInterfaces.toSet + cls.getSuperclass
-      case iface: CtInterface[_] =>
-        iface.getSuperInterfaces.toSet
-      case _ =>
-        Set()
+    def getSupers(c: CtSimpleType[_]): Set[CtSimpleType[_]] = {
+      def getSuperRefs(c: CtSimpleType[_]) = c match {
+        case cls: CtClass[_] =>
+          if (cls.getSuperclass == null)
+            cls.getSuperInterfaces.toSet
+          else
+            cls.getSuperInterfaces.toSet + cls.getSuperclass
+        case iface: CtInterface[_] =>
+          iface.getSuperInterfaces.toSet
+        case _ =>
+          Set()
+      }
+      getSuperRefs(c).collect {  // filter: types declared only
+        case ref if refToType.contains(ref) => refToType(ref)
+      }
     }
 
-    def addDependToSupers(t: CtTypeReference[_]) {
-      def toSuper(sub: CtTypeReference[_]) {
+    // build supers map (restricting declared types only)
+    for (c <- declared) {
+      supers(c) = getSupers(c)
+    }
+
+    // add t(class) to its supertypes(classes/interfaces) dependents list
+    def addDependToSupers(t: CtClass[_]) {
+      def toSuper(sub: CtSimpleType[_]) {
         supers(sub) foreach { sup =>
-          depends(sup) = depends(sup) + t
+          depends(sup.getReference) = depends(sup.getReference) + t
           toSuper(sup)
         }
       }
       toSuper(t)
     }
-
-    // build supers map (restricting declared types only)
-    for {
-      c <- declared
-    } supers(c.getReference) = getSupers(c).filter(declaredRefs.contains(_))
-
     // build dependents map
     for {
-      c <- declaredRefs if !c.isInterface
-    } addDependToSupers(c)
+      c <- declared if c.isInstanceOf[CtClass[_]]
+    } addDependToSupers(c.asInstanceOf[CtClass[_]])
 
     depends.toMap withDefaultValue { Set() }
+  }
+
+  def isOverriding(a: CtMethod[_], b: CtExecutableReference[_]): Boolean = {
+    a.getSignature == b.getDeclaration.getSignature
   }
 
   def hasBody[T <: CtExecutable[_]](t: T): Boolean = !t.isImplicit && t.getBody != null
@@ -109,13 +122,14 @@ trait CallCounter {
   def invokeinterface(in: CtInvocation[_]): Boolean = {
     in.getTarget != null && in.getTarget.getType.isInterface
   }
+
   lazy val ncallsMap: Map[CtExecutableReference[_], Int] = {
     val depends = buildTypeHierarchy
     def overriding(ref: CtExecutableReference[_]): Set[CtExecutableReference[_]] =
       for {
         t <- depends(ref.getDeclaringType)
-        e <- t.getDeclaredExecutables if e.isOverriding(ref)
-      } yield e
+        e <- t.getMethods if isOverriding(e, ref)
+      } yield e.getReference
 
     val counter = scala.collection.mutable.Map[CtExecutableReference[_], Int]() withDefaultValue 0
 
