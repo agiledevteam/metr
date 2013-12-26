@@ -18,10 +18,6 @@ import spoon.reflect.declaration.CtExecutable
 
 trait LocCounter {
 
-  def blankLine(l: String) = l forall (!_.isLetterOrDigit)
-
-  def plainLoc(s: String) = (s.lines filterNot blankLine).size
-
   def ifElseChain(ifStm: CtIf): List[CtStatement] = {
     var cur: CtStatement = ifStm
     val list = ListBuffer[CtStatement]()

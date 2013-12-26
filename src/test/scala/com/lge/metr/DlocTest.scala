@@ -17,26 +17,13 @@ import spoon.support.builder.support.CtFileFile
 import java.io.File
 import scala.io.Source
 import spoon.reflect.code.CtBlock
+import spoon.reflect.code.CtStatement
 
 @RunWith(classOf[JUnitRunner])
 class DlocTest extends FunSuite with LocCounter {
 
-
-  def stringResource(src: String): CtFile =
-    new CtVirtualFile(src, "Loc.java")
-
   def fileResource(path: String): CtFile =
     new CtFileFile(new File(path))
-
-  class MethodFilter[T](name: String) extends AbstractFilter[CtMethod[T]](classOf[CtMethod[T]]) {
-    override def matches(m: CtMethod[T]): Boolean = {
-      m.getSimpleName == name
-    }
-  }
-
-  def methodNamed[T](f: Factory, name: String): CtMethod[T] = {
-    Query.getElements(f, new MethodFilter[T](name)).head
-  }
 
   def testSrc(src: String): String = {
     val header =
@@ -50,10 +37,10 @@ class DlocTest extends FunSuite with LocCounter {
     header + src + footer
   }
 
-  implicit def strToBlock[T, B <: T](body: String): CtBlock[B] = {
-    val f = SpoonLauncher(stringResource(testSrc(body)))
-    val m: CtMethod[T] = methodNamed[T](f, "loc")
-    m.getBody[B]
+  implicit def strToBlock(body: String) = {
+    val f = SpoonLauncher(testSrc(body))
+    val m: CtMethod[_] = f.all[CtMethod[_]].find(_.getSimpleName == "loc").get
+    m.getBody
   }
 
   test("straight forward plain loc") {
@@ -215,7 +202,7 @@ class DlocTest extends FunSuite with LocCounter {
       .collect {
         case Some(weightP(w)) => w.toDouble
       }.toList
-    val m = methodNamed(f, testMethod)
+    val m = f.all[CtMethod[_]].find(_.getSimpleName == testMethod).get
     expect(weights.sum)(dloc(m))
     expect(weights.filter(_ != 0).size)(sloc(m))
   }
