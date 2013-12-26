@@ -22,7 +22,7 @@ class SpoonLauncher(config: Config) extends CallCounter with LocCounter with CCC
   def generate(reportFile: String) {
     val methods = allMethods
 
-    val handlers: List[CtExecutable[_] => Any] = List(sloc(_), dloc(_), ncalls(_), cc(_), nameFor(_))
+    val handlers: List[CtExecutable[_] => Any] = List(sloc(_), dloc(_), nameFor(_))
     val p = new PrintWriter(reportFile)
     methods foreach { m =>
       p.println(handlers.map(h => h(m)).mkString("\t"))
