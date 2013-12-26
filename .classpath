@@ -3,6 +3,9 @@
   <classpathentry kind="src" path="src/main/java" output="target/scala-2.10/classes"/>
   <classpathentry kind="src" path="src/test/scala" output="target/scala-2.10/test-classes"/>
   <classpathentry kind="src" path="src/test/java" output="target/scala-2.10/test-classes"/>
+  <classpathentry kind="lib" path="./lib/core-3.3.8.201211290939.jar"/>
+  <classpathentry kind="lib" path="./lib/jansi-1.4.jar"/>
+  <classpathentry kind="lib" path="./lib/jsap-2.1.jar"/>
   <classpathentry kind="lib" path="./lib/spoon-core-1.5.jar"/>
   <classpathentry kind="lib" path="./lib_managed/jars/com.github.scopt/scopt_2.10/scopt_2.10-3.2.0.jar"/>
   <classpathentry kind="lib" path="./lib_managed/jars/com.netflix.rxjava/rxjava-scala/rxjava-scala-0.15.1.jar"/>
