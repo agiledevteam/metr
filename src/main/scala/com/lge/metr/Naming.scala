@@ -1,22 +1,14 @@
 package com.lge.metr
-import spoon.reflect.declaration.CtExecutable
-import spoon.reflect.code.CtInvocation
-import spoon.reflect.reference.CtExecutableReference
-import spoon.reflect.reference.CtTypeReference
+
 import scala.collection.JavaConversions._
-import spoon.reflect.reference.CtArrayTypeReference
-import spoon.reflect.code.CtAbstractInvocation
 
 trait Naming {
-  def nameFor[T](c: CtExecutable[T]): String =
-    nameFor(c.getReference)
-  def nameFor[T](c: CtAbstractInvocation[T]): String =
-    nameFor(c.getExecutable)
+  import JavaModel._
 
-  def encodeArrayType[T](c: CtTypeReference[T]): String = c match {
-    case ac: CtArrayTypeReference[T] => "[" * ac.getDimensionCount()
-    case _ => ""
-  }
+//  def encodeArrayType(t: TypeRef): String = t match {
+//    case ArrayTypeRef(n)=> "[" * n
+//    case _ => ""
+//  }
 
   def encodeTypeName(c: String): String = c match {
     case "void" => "V"
@@ -30,19 +22,16 @@ trait Naming {
     case "boolean" => "Z"
     case z => "L" + slash(z)
   }
-
-  def nameFor[T](c: CtTypeReference[T]): String =
-    encodeArrayType(c) + encodeTypeName(c.getQualifiedName)
+//
+//  def nameFor(t: TypeRef): String =
+//    encodeArrayType(t) + encodeTypeName(t.qualifiedName)
 
   def slash(s: String): String = s.replace('.', '/')
 
-  def nameFor[T](c: CtExecutableReference[T]): String = {
-    val methodName = slash(c.getDeclaringType.getQualifiedName) + "." + c.getSimpleName
-    if (c.getParameterTypes.exists(_ == null)) {
-      println("--" + c)
-    }
-    val param = c.getParameterTypes.map(nameFor(_) + ";").mkString
-    val ret = if (c.isConstructor) "V" else nameFor(c.getType)
-    methodName + ":(" + param + ")" + ret
-  }
+//  def nameFor(e: Executable): String = {
+//    val methodName = slash(e.declType.qualifiedName) + "." + c.simpleName
+//    val param = e.parameterTypes.map(nameFor(_) + ";").mkString
+//    val ret = if (e.isConstructor) "V" else nameFor(e.typ)
+//    methodName + ":(" + param + ")" + ret
+//  }
 }

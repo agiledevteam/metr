@@ -1,29 +1,17 @@
 package com.lge.metr
-import scala.collection.JavaConversions._
-import org.scalatest._
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import spoon.AbstractLauncher
-import spoon.reflect.declaration.CtMethod
-import spoon.support.builder.CtResource
-import spoon.reflect.declaration.CtPackage
-import spoon.support.builder.support.CtVirtualFile
-import spoon.reflect.visitor.Query
-import spoon.reflect.Factory
-import spoon.reflect.visitor.Filter
-import spoon.reflect.visitor.filter.AbstractFilter
-import spoon.support.builder.CtFile
-import spoon.support.builder.support.CtFileFile
+
 import java.io.File
+
+import scala.collection.JavaConversions._
 import scala.io.Source
-import spoon.reflect.code.CtBlock
-import spoon.reflect.code.CtStatement
+
+import org.junit.runner.RunWith
+import org.scalatest._
+import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class DlocTest extends FunSuite with LocCounter {
 
-  def fileResource(path: String): CtFile =
-    new CtFileFile(new File(path))
 
   def testSrc(src: String): String = {
     val header =
@@ -39,8 +27,7 @@ class DlocTest extends FunSuite with LocCounter {
 
   implicit def strToBlock(body: String) = {
     val f = SpoonLauncher(testSrc(body))
-    val m: CtMethod[_] = f.all[CtMethod[_]].find(_.getSimpleName == "loc").get
-    m.getBody
+    f.allExecutables(0)
   }
 
   test("straight forward plain loc") {
@@ -194,15 +181,14 @@ class DlocTest extends FunSuite with LocCounter {
   }
 
   def checkFile(testFile: String, testMethod: String) {
-    val res = fileResource(testFile)
-    val f = SpoonLauncher(res)
+    val f = SpoonLauncher(new File(testFile))
     val weightP = "// ?([.0-9]+)".r
     val weights = Source.fromFile(testFile).getLines
       .map(weightP findFirstIn _)
       .collect {
         case Some(weightP(w)) => w.toDouble
       }.toList
-    val m = f.all[CtMethod[_]].find(_.getSimpleName == testMethod).get
+    val m = f.allExecutables.find(_.name.contains(testMethod)).get
     expect(weights.sum)(dloc(m))
     expect(weights.filter(_ != 0).size)(sloc(m))
   }

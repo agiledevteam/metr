@@ -9,6 +9,6 @@ object MyBuild extends Build {
     println("Full classpath is: " + cp.map(_.data).mkString(":"))
   }
   lazy val project = Project( "project", file("."),
-    settings = Defaults.defaultSettings ++ Seq(getJarsTask) 
+    settings = Defaults.defaultSettings ++ Seq(getJarsTask) ++ com.simplytyped. Antlr4Plugin.antlr4Settings
   )
 }

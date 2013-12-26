@@ -8,6 +8,14 @@ scalaVersion := "2.10.2"
 
 retrieveManaged := true
 
+antlr4Settings
+
+antlr4PackageName in Antlr4 := Some("com.lge.metr")
+
+antlr4GenListener in Antlr4 := true // default: true
+
+antlr4GenVisitor in Antlr4 := true // default: false
+
 libraryDependencies += "org.scalatest" %% "scalatest" % "1.9.1" % "test"
 
 libraryDependencies += "junit" % "junit" % "4.10" % "test"
