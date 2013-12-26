@@ -1,21 +1,37 @@
 package com.lge.metr
 
 import java.io.File
-
 import spoon.reflect.Factory
 import spoon.support.DefaultCoreFactory
 import spoon.support.StandardEnvironment
 import spoon.support.builder.CtResource
+import spoon.support.builder.support.CtVirtualFile
+import spoon.reflect.declaration.CtExecutable
+import java.io.PrintWriter
 
-class SpoonLauncher {
+class SpoonLauncher(config: Config) extends CallCounter with LocCounter with CCCounter {
   val factory = SpoonLauncher.createFactory
-  
-  def batch(src: Seq[File], deps: Seq[File]) {
-    ClasspathHolder.additionalClasspath = deps.mkString(File.pathSeparator)
+
+  def loadAll() {
+    ClasspathHolder.additionalClasspath = config.deps.mkString(File.pathSeparator)
     val builder = factory.getBuilder
-    src foreach (builder.addInputSource(_))
+    config.src foreach (builder.addInputSource(_))
     builder.build
   }
+
+  def generate(reportFile: String) {
+    val methods = allMethods
+
+    val handlers: List[CtExecutable[_] => Any] = List(sloc(_), dloc(_), ncalls(_), cc(_), nameFor(_))
+    val p = new PrintWriter(reportFile)
+    methods foreach { m =>
+      p.println(handlers.map(h => h(m)).mkString("\t"))
+    }
+    p.close
+  }
+
+  def allMethods =
+    factory.all[CtExecutable[_]].filter(m => !m.isImplicit && m.getBody != null)
 }
 
 object SpoonLauncher {
@@ -35,5 +51,8 @@ object SpoonLauncher {
     builder addInputSource res
     builder.build
     factory
+  }
+  def apply(src: String): Factory = {
+    apply(new CtVirtualFile(src, "Test.java"))
   }
 }

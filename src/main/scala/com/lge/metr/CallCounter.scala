@@ -18,10 +18,15 @@ import spoon.reflect.declaration.CtClass
 import spoon.reflect.code.CtNewClass
 import spoon.reflect.declaration.CtConstructor
 import com.sun.corba.se.pept.transport.ContactInfo
+import spoon.support.builder.support.CtVirtualFile
+import spoon.support.builder.CtResource
 
-trait CallCounter {
-
+trait CallCounter extends Naming {
   val factory: Factory
+
+  def nameToExecutable(name: String): CtExecutable[_] = {
+    factory.all[CtExecutable[_]].find(nameFor(_) == name).get
+  }
 
   def isSystem[T](t: CtTypeReference[T]): Boolean = {
     val f = t.getFactory
@@ -51,8 +56,12 @@ trait CallCounter {
     }
   }
 
+  def ncalls(name: String): Int = ncalls(nameToExecutable(name))
+
   def ncalls(m: CtExecutable[_]): Int = ncallsMap(m.getReference)
+
   var requestFuture: CtSimpleType[_] = null
+
   def buildTypeHierarchy: Map[CtTypeReference[_], Set[CtClass[_]]] = {
     val supers = scala.collection.mutable.Map[CtSimpleType[_], Set[CtSimpleType[_]]]() withDefaultValue {
       Set()
