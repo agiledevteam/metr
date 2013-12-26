@@ -1,3 +1,5 @@
+import AssemblyKeys._
+
 name := "metr"
 
 version := "1.0"
@@ -21,3 +23,6 @@ libraryDependencies += "com.netflix.rxjava" % "rxjava-scala" % "0.15.1"
 resolvers += Resolver.sonatypeRepo("public")
 
 scalacOptions ++= Seq("-feature", "-deprecation")
+
+mainClass in assembly := Some("com.lge.metr.AppMain")
+
