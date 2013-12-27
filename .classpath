@@ -2,8 +2,10 @@
   <classpathentry kind="src" path="src/main/scala" output="target/scala-2.10/classes"/>
   <classpathentry kind="src" path="src/main/java" output="target/scala-2.10/classes"/>
   <classpathentry kind="src" path="src/main/antlr4" output="target/scala-2.10/classes"/>
+  <classpathentry kind="src" path="target/scala-2.10/src_managed/main" output="target/scala-2.10/classes"/>
   <classpathentry kind="src" path="src/test/scala" output="target/scala-2.10/test-classes"/>
   <classpathentry kind="src" path="src/test/java" output="target/scala-2.10/test-classes"/>
+  <classpathentry kind="src" path="target/scala-2.10/src_managed/test" output="target/scala-2.10/test-classes"/>
   <classpathentry kind="lib" path="./lib_managed/jars/org.antlr/antlr4/antlr4-4.1.jar"/>
   <classpathentry kind="lib" path="./lib_managed/jars/org.antlr/antlr4-runtime/antlr4-runtime-4.1.jar"/>
   <classpathentry kind="lib" path="./lib_managed/jars/org.abego.treelayout/org.abego.treelayout.core/org.abego.treelayout.core-1.0.1.jar"/>

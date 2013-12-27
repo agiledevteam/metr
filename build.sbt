@@ -32,3 +32,5 @@ scalacOptions ++= Seq("-feature", "-deprecation")
 
 mainClass in assembly := Some("com.lge.metr.AppMain")
 
+EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Managed
+
