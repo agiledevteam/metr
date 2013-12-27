@@ -20,10 +20,10 @@ run
 output
 ======
 
-Each line represents `sloc - dloc - name` of a method.
+Each line represents `sloc - dloc - cc - name` of a method.
 
-    11      8.5     method1
-    8       7       method2
+    11      8.5     3   method1
+    8       7       2   method2
     ...
 
 

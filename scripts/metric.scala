@@ -8,7 +8,7 @@ import java.io._
   def load(path: String): Db = {
     Source.fromFile(path).getLines.map { line =>
       val v = line.split("\t")
-      Rec(v(0).toDouble, v(1).toDouble,0, 0, v(2))
+      Rec(v(0).toDouble, v(1).toDouble, 0, 0, v(3))
     }.toList
   }
 

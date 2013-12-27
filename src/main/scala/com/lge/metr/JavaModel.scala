@@ -24,7 +24,7 @@ object JavaModel {
 
   class Stmt
 
-  case class IfStmt(thenPart: Stmt, elsePart: Stmt) extends Stmt
+  case class IfStmt(thenPart: Stmt, elsePart: List[Stmt]) extends Stmt
 
   case class SwitchStmt(cases: List[Stmt]) extends Stmt
 
@@ -34,7 +34,7 @@ object JavaModel {
 
   case class SyncStmt(body: BlockStmt) extends Stmt
 
-  case class TryStmt(body: BlockStmt, catchers: List[BlockStmt], finalizer: BlockStmt) extends Stmt
+  case class TryStmt(body: BlockStmt, catchers: List[BlockStmt], finalizer: List[BlockStmt]) extends Stmt
   
   case class OtherStmt() extends Stmt
 }

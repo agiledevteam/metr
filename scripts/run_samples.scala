@@ -1,7 +1,7 @@
 import scala.sys.process._
 import java.io._
 
-val metr = "metr-assembly-1.0.jar"
+val metr = "../target/scala-2.10/metr-assembly-1.0.jar"
 val java_opts = "-Xms512m -Xmx512m"
 val reports = Seq("sloc", "dloc", "cc")
 
