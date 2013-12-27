@@ -1,41 +1,53 @@
 metr
 ====
 
-metric calculator
-* sloc - lines of code
-* dloc - dloc - check out ['What is DLOC'](https://github.com/agiledevteam/metr/wiki/What-is-DLOC%3F)
-* cc - cyclomatic complexity
-* ncalls - number of calls (including calls via overriding)
+metric calculator for Java projects
+
+for each method:
+
+* sloc - source lines of code
+* dloc - [dloc](https://github.com/agiledevteam/metr/wiki/What-is-DLOC%3F)
+* cc - cyclomatic complexity 
+* (not yet) ncalls - number of calls (including calls via overriding)
 
 [![Build Status](https://travis-ci.org/agiledevteam/metr.png)](https://travis-ci.org/agiledevteam/metr)
 
 run
 ===
 
-`sbt "run -s src-roots -d dependent-jars -t report-targets"`
+`sbt "run -s src"`
 
-Output:
+output
+======
 
-    method         sloc    dloc    ncalls
-    my/A.foo(I;)V  11      8.5     2
-    my/A.bar()I    8       7       1
+Each line represents `sloc - dloc - name` of a method.
+
+    11      8.5     method1
+    8       7       method2
     ...
 
-Requirements:
 
+samples
+=======
 
-Samples of Android app:
+This project points to two submodules as samples: GitHub's android app, Google's iosched app.
 
 * `git submodule init/update` to retrieve sample projects' source
-* samples/google-iosched requires 'android-18', 'Google Repository' and 'Build Tool v18.0.1'. To build `./gradlew asDe`
-* samples/github-android requires 'android-16'. To build `mvn package`
-* use *dex2jar* to extract jar from apk. 
-* use `-d <jar from step above>:<android.jar>` as dependencies
+* `samples/google-iosched` requires 'android-18', 'Google Repository' and 'Build Tool v18.0.1'. To build `./gradlew asDe`
+* `samples/github-android` requires 'android-16'. To build `mvn package`
+* In `samples` directory, run `scala run_samples.scala` to run `metr` on all samples. 
 
 
-Notes:
+notes
+=====
 
-* `sbt update` after cloning (retrieve dependencies)
-* `sbt update/eclipse` after modifying sbt dependencies
-** requires sbt eclipse plugin
+* `sbt update` will retrieve managed dependencies.
+* `sbt eclipse` will generate/update eclipse project setting.
 * `sbt assembly` to make a one jar executable
+
+
+TODOs
+====
+
+* cyclomatic complexity: method/class/package/project
+* trends (git history)
