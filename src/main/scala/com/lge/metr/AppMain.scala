@@ -3,7 +3,7 @@ package com.lge.metr
 import java.io.File
 import scala.Array.canBuildFrom
 
-case class Config(src: File)
+case class Config(src: File, out: File)
 
 object AppMain extends App {
   val parser = new scopt.OptionParser[Config]("metr") {
@@ -12,12 +12,12 @@ object AppMain extends App {
     opt[String]('s', "src") required () valueName ("<file or directory>") action { (x, c) =>
       c.copy(src = new File(x))
     } text ("src is a file to analyize or a directory which is a root of source files")
-    opt[String]('f', "file") optional () valueName ("files for config") action { (x, c) =>
-      c // TODO read config from specified file
+    opt[String]('o', "output") optional () valueName ("<output file path>") action { (x, c) =>
+      c.copy(out = new File(x))
     }
   }
 
-  parser.parse(args, Config(null)) map { config =>
+  parser.parse(args, Config(null, new File("report.txt"))) map { config =>
     val launcher = new SpoonLauncher
     launcher.addSource(config.src)
 
@@ -26,7 +26,7 @@ object AppMain extends App {
     println("done")
 
     print("generating...")
-    launcher.generate("report.txt")
+    launcher.generate(config.out)
     println("done")
   } getOrElse {
   }

@@ -59,7 +59,7 @@ class SpoonLauncher extends LocCounter with CCCounter {
     }
   }
 
-  def generate(reportFile: String) {
+  def generate(reportFile: File) {
     val handlers: List[Executable => Any] = List(sloc(_), dloc(_), cc(_), m => m.name)
     val p = new PrintWriter(reportFile)
     allExecutables foreach { e =>
