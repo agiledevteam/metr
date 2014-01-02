@@ -33,7 +33,7 @@ trait MetricCounter {
     case SyncStmt(body) => 1 + loc(body)
     case TryStmt(body, catchers, finalizer) =>
       (body :: catchers ::: finalizer).map(loc(_) + 1).sum
-    case s => 1
+    case _ => 1
   }
 
 }
