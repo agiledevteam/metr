@@ -1,9 +1,24 @@
 package com.lge.metr
 
-import scala.language.implicitConversions
+import scala.collection.JavaConversions._
 
-trait LocCounter {
+trait MetricCounter {
   import JavaModel._
+
+  def cc(exe: Executable): Int = cc(exe.body) + 1
+  def sloc(stmt: Executable): Double = loc(stmt.body)(1)
+  def dloc(stmt: Executable): Double = loc(stmt.body)(0.5)
+
+  private def cc(stmt: Stmt): Int = stmt match {
+    case IfStmt(t, f) => 1 + (t :: f).map(cc(_)).sum
+    case SwitchStmt(cases) => cases.map(cc(_) + 1).sum
+    case LoopStmt(_, body) => cc(body) + 1
+    case BlockStmt(statements) => statements.map(cc(_)).sum
+    case SyncStmt(body) => cc(body)
+    case TryStmt(body, catchers, finalizer) =>
+      (body :: catchers ::: finalizer).map(cc(_)).sum
+    case _ => 0
+  }
 
   def ifElseChain(stmt: Stmt): List[Stmt] = stmt match {
     case IfStmt(thenPart, elsePart) => thenPart :: elsePart.flatMap(ifElseChain(_))
@@ -21,6 +36,4 @@ trait LocCounter {
     case s => 1
   }
 
-  def sloc(stmt: Executable): Double = loc(stmt.body)(1)
-  def dloc(stmt: Executable): Double = loc(stmt.body)(0.5)
 }

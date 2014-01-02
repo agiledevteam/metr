@@ -18,15 +18,15 @@ object AppMain extends App {
   }
 
   parser.parse(args, Config(null, new File("report.txt"))) map { config =>
-    val launcher = new SpoonLauncher
-    launcher.addSource(config.src)
+    val metr = new Metric
+    metr.addSource(config.src)
 
     print("loading...")
-    launcher.load
+    metr.load
     println("done")
 
     print("generating...")
-    launcher.generate(config.out)
+    metr.generate(config.out)
     println("done")
   } getOrElse {
   }

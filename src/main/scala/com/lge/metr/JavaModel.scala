@@ -2,20 +2,9 @@ package com.lge.metr
 
 object JavaModel {
 
-  abstract class TypeRef {
-    val qualifiedName: String
-  }
-
-  case class ArrayTypeRef(qualifiedName: String, dimension: Int) extends TypeRef
-
-  case class ScalaTypeRef(qualifiedName: String)
-
   abstract class Executable {
     val name: String
     val body: BlockStmt
-    val declType: TypeRef = null
-    val parameterTypes: List[TypeRef] = Nil
-    val typ: TypeRef = null
   }
 
   case class Method(name: String, body: BlockStmt) extends Executable

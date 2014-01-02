@@ -9,8 +9,10 @@ import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
 
+import scala.language.implicitConversions
+
 @RunWith(classOf[JUnitRunner])
-class DlocTest extends FunSuite with LocCounter {
+class LocTest extends FunSuite with MetricCounter {
 
 
   def testSrc(src: String): String = {
@@ -26,7 +28,7 @@ class DlocTest extends FunSuite with LocCounter {
   }
 
   implicit def strToBlock(body: String) = {
-    val f = SpoonLauncher(testSrc(body))
+    val f = Metric(testSrc(body))
     f.allExecutables(0)
   }
 
@@ -40,8 +42,8 @@ class DlocTest extends FunSuite with LocCounter {
       };
       return;
       """
-    expect(2)(dloc(body))
-    expect(2)(sloc(body))
+    expectResult(2)(dloc(body))
+    expectResult(2)(sloc(body))
   }
 
   test("if-else plain loc") {
@@ -52,7 +54,7 @@ class DlocTest extends FunSuite with LocCounter {
       }
       return;
       """
-    expect(3)(dloc(body))
+    expectResult(3)(dloc(body))
   }
 
   test("if-else-if plain loc") {
@@ -66,7 +68,7 @@ class DlocTest extends FunSuite with LocCounter {
       }
       return;
       """
-    expect(5)(dloc(body))
+    expectResult(5)(dloc(body))
   }
   test("if-else-if-else(empty) plain loc") {
     val body = """
@@ -80,7 +82,7 @@ class DlocTest extends FunSuite with LocCounter {
         }
         return;
         """
-    expect(6)(dloc(body))
+    expectResult(6)(dloc(body))
   }
   test("nested-if") {
     val body = """
@@ -94,7 +96,7 @@ class DlocTest extends FunSuite with LocCounter {
         }
         return;
         """
-    expect(4)(dloc(body))
+    expectResult(4)(dloc(body))
   }
 
   test("nested block") {
@@ -111,7 +113,7 @@ class DlocTest extends FunSuite with LocCounter {
         }
         return; // 5
         """
-    expect(5)(dloc(body))
+    expectResult(5)(dloc(body))
   }
 
   test("loop") {
@@ -128,7 +130,7 @@ class DlocTest extends FunSuite with LocCounter {
           } while (a < 0);
         }
         """
-    expect(5)(dloc(body))
+    expectResult(5)(dloc(body))
   }
 
   test("synchronized") {
@@ -143,7 +145,7 @@ class DlocTest extends FunSuite with LocCounter {
         }
         return; // 1
         """
-    expect(4.5)(dloc(body))
+    expectResult(4.5)(dloc(body))
   }
 
   test("switch-case") {
@@ -168,7 +170,7 @@ class DlocTest extends FunSuite with LocCounter {
         break;
        }
           """
-    expect(11.5)(dloc(body))
+    expectResult(11.5)(dloc(body))
   }
 
   test("do-while-one-line") {
@@ -176,12 +178,12 @@ class DlocTest extends FunSuite with LocCounter {
       int a = 0;
       do a--; while(a>0);
       """
-    expect(3.5)(dloc(body))
-    expect(4)(sloc(body))
+    expectResult(3.5)(dloc(body))
+    expectResult(4)(sloc(body))
   }
 
   def checkFile(testFile: String, testMethod: String) {
-    val f = SpoonLauncher(new File(testFile))
+    val f = Metric(new File(testFile))
     val weightP = "// ?([.0-9]+)".r
     val weights = Source.fromFile(testFile).getLines
       .map(weightP findFirstIn _)
@@ -189,8 +191,8 @@ class DlocTest extends FunSuite with LocCounter {
         case Some(weightP(w)) => w.toDouble
       }.toList
     val m = f.allExecutables.find(_.name.contains(testMethod)).get
-    expect(weights.sum)(dloc(m))
-    expect(weights.filter(_ != 0).size)(sloc(m))
+    expectResult(weights.sum)(dloc(m))
+    expectResult(weights.filter(_ != 0).size)(sloc(m))
   }
 
   test("sample input ") {

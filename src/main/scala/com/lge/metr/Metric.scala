@@ -14,9 +14,7 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker
 
 import com.lge.metr.JavaParser.CompilationUnitContext
 
-import JavaModel.Executable
-
-class SpoonLauncher extends LocCounter with CCCounter {
+class Metric extends MetricCounter {
 
   import JavaModel._
 
@@ -79,15 +77,15 @@ class SpoonLauncher extends LocCounter with CCCounter {
   }
 }
 
-object SpoonLauncher {
-  def apply(src: String): SpoonLauncher = {
-    val launcher = new SpoonLauncher
+object Metric {
+  def apply(src: String): Metric = {
+    val launcher = new Metric
     launcher.addSource(src)
     launcher.load
     launcher
   }
-  def apply(src: File): SpoonLauncher = {
-    val launcher = new SpoonLauncher
+  def apply(src: File): Metric = {
+    val launcher = new Metric
     launcher.addSource(src)
     launcher.load
     launcher

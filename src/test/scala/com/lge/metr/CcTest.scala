@@ -6,10 +6,11 @@ import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
 
+import scala.language.implicitConversions
 
 
 @RunWith(classOf[JUnitRunner])
-class CCCounterTest extends FunSuite with CCCounter {
+class CcTest extends FunSuite with MetricCounter {
 
   def testSrc(src: String): String = {
     val header =
@@ -24,7 +25,7 @@ class CCCounterTest extends FunSuite with CCCounter {
   }
 
   implicit def strToBlock(body: String) = {
-    val f = SpoonLauncher(testSrc(body))
+    val f = Metric(testSrc(body))
     f.allExecutables(0)
   }
 
@@ -34,7 +35,7 @@ class CCCounterTest extends FunSuite with CCCounter {
       int a;
       return;
       """
-   expect(1)(cc(body))
+   expectResult(1)(cc(body))
   }
   
    test("if-else cc") {
@@ -45,7 +46,7 @@ class CCCounterTest extends FunSuite with CCCounter {
       }
       return;
       """
-    expect(2)(cc(body))
+    expectResult(2)(cc(body))
   }
   
 }
