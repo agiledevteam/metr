@@ -12,7 +12,11 @@ import java.io._
     }.toList
   }
 
- val dbs =  new File("output").listFiles.map(f => f.getPath() + "/report.txt")
+  val dbs = if (args.size > 0) {
+    args
+  } else {
+    new File("output").listFiles.map(f => f.getPath() + "/report.txt")
+  }
 
   def report(name: String)(calc: Db => List[Double]) {
     println(name)
