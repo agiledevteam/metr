@@ -2,6 +2,7 @@
 target/
 lib_managed/
 
+.settings
 .cache
 report.txt
 
