@@ -13,17 +13,17 @@ object JavaModel {
 
   class Stmt
 
-  case class IfStmt(thenPart: Stmt, elsePart: List[Stmt]) extends Stmt
+  case class IfStmt(thenPart: Stmt, elsePart: Option[Stmt]) extends Stmt
 
-  case class SwitchStmt(cases: List[Stmt]) extends Stmt
+  case class SwitchStmt(cases: Seq[Stmt]) extends Stmt
 
   case class LoopStmt(keyword: String, body: Stmt) extends Stmt
 
-  case class BlockStmt(statements: List[Stmt]) extends Stmt
+  case class BlockStmt(statements: Seq[Stmt]) extends Stmt
 
   case class SyncStmt(body: BlockStmt) extends Stmt
 
-  case class TryStmt(body: BlockStmt, catchers: List[BlockStmt], finalizer: List[BlockStmt]) extends Stmt
+  case class TryStmt(body: BlockStmt, catchers: Seq[BlockStmt], finalizer: Option[BlockStmt]) extends Stmt
   
   case class OtherStmt() extends Stmt
 }

@@ -10,18 +10,19 @@ trait MetricCounter {
   def dloc(stmt: Executable): Double = loc(stmt.body)(0.5)
 
   private def cc(stmt: Stmt): Int = stmt match {
-    case IfStmt(t, f) => 1 + (t :: f).map(cc(_)).sum
+    case IfStmt(t, f) => 1 + (List(t) ++ f).map(cc(_)).sum
     case SwitchStmt(cases) => cases.map(cc(_) + 1).sum
     case LoopStmt(_, body) => cc(body) + 1
     case BlockStmt(statements) => statements.map(cc(_)).sum
     case SyncStmt(body) => cc(body)
     case TryStmt(body, catchers, finalizer) =>
-      (body :: catchers ::: finalizer).map(cc(_)).sum
+      ((body +: catchers) ++ finalizer).map(cc(_)).sum
     case _ => 0
   }
 
   def ifElseChain(stmt: Stmt): List[Stmt] = stmt match {
-    case IfStmt(thenPart, elsePart) => thenPart :: elsePart.flatMap(ifElseChain(_))
+    case IfStmt(thenPart, Some(elsePart)) => thenPart :: ifElseChain(elsePart)
+    case IfStmt(thenPart, None) => List(thenPart)
     case _ => List(stmt)
   }
 
@@ -32,7 +33,7 @@ trait MetricCounter {
     case BlockStmt(statements) => statements.map(loc(_)).sum
     case SyncStmt(body) => 1 + loc(body)
     case TryStmt(body, catchers, finalizer) =>
-      (body :: catchers ::: finalizer).map(loc(_) + 1).sum
+      ((body +: catchers) ++ finalizer).map(loc(_) + 1).sum
     case _ => 1
   }
 

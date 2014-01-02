@@ -2,6 +2,7 @@ package com.lge.metr
 
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.collection.mutable.ListBuffer
+import scala.language.implicitConversions
 
 import com.lge.metr.JavaParser.BlockContext
 import com.lge.metr.JavaParser.BlockStatementContext
@@ -36,41 +37,40 @@ class TreeListener extends JavaBaseListener {
 
   override def enterMethodDeclaration(ctx: MethodDeclarationContext) {
     if (ctx.methodBody != null) {
-      executables += Method(typeName + "." + ctx.Identifier.getText, asBlock(ctx.methodBody.block))
+      executables += Method(typeName+"."+ctx.Identifier.getText, ctx.methodBody.block)
     }
   }
   override def enterConstructorDeclaration(ctx: ConstructorDeclarationContext) {
-    executables += Ctor(typeName + ".<init>", asBlock(ctx.constructorBody.block))
+    executables += Ctor(typeName+".<init>", ctx.constructorBody.block)
   }
 
-  def asBlock(b: BlockContext): BlockStmt = {
-    BlockStmt(b.blockStatement.toList.map(asStmt))
+  implicit def asBlock(b: BlockContext): BlockStmt = {
+    BlockStmt(b.blockStatement.map(asStmt))
   }
-  def asStmt(stmt: StatementContext): Stmt =
-    stmt.getChild(0).getText match {
-      case "if" =>
-        if (stmt.statement.size == 1) IfStmt(asStmt(stmt.statement(0)), Nil)
-        else IfStmt(asStmt(stmt.statement(0)), List(asStmt(stmt.statement(1))))
-      case "for" => LoopStmt("for", asStmt(stmt.statement(0)))
-      case "while" => LoopStmt("while", asStmt(stmt.statement(0)))
-      case "do" => LoopStmt("do", asStmt(stmt.statement(0)))
-      case "try" =>
-        TryStmt(asBlock(stmt.block),
-          stmt.catchClause.toList.map(c => asBlock(c.block)),
-          if (stmt.finallyBlock != null) List(asBlock(stmt.finallyBlock.block)) else Nil)
-      case "switch" => SwitchStmt(
-        stmt.switchBlockStatementGroup.toList.flatMap(g =>
-          g.switchLabel.toList.init.map(_ => BlockStmt(List())) :+
-            BlockStmt(g.blockStatement.toList.map(s => asStmt(s)))) ++ stmt.switchLabel.toList.map(_ => BlockStmt(List())))
-      case "synchronized" =>
-        SyncStmt(asBlock(stmt.block))
-      case ";" =>
-        BlockStmt(List())
-      case _ =>
-        if (stmt.block != null) { asBlock(stmt.block) }
-        else if (stmt.getChild(1).getText == ":") { asStmt(stmt.statement(0)) }
-        else OtherStmt()
-    }
+  implicit def asStmt(stmt: StatementContext): Stmt = stmt.getChild(0).getText match {
+    case "if" =>
+      IfStmt(stmt.statement(0), // then part
+        stmt.statement.lift(1).map(asStmt)) // else part is optional
+    case kw @ ("for" | "while" | "do") =>
+      LoopStmt(kw, stmt.statement(0))
+    case "try" =>
+      TryStmt(stmt.block,
+        stmt.catchClause.map(c => asBlock(c.block)),
+        Option(stmt.finallyBlock).map(_.block))
+    case "switch" =>
+      SwitchStmt(stmt.switchBlockStatementGroup.flatMap(g => // each group has
+        g.switchLabel.init.map(_ => BlockStmt(List())) :+ // leading empty cases
+          BlockStmt(g.blockStatement.map(asStmt))) ++ // case with statements
+        stmt.switchLabel.map(_ => BlockStmt(List()))) // trailing empty cases
+    case "synchronized" =>
+      SyncStmt(stmt.block)
+    case ";" =>
+      BlockStmt(List())
+    case _ =>
+      if (stmt.block != null) stmt.block
+      else if (stmt.getChild(1).getText == ":") stmt.statement(0)
+      else OtherStmt()
+  }
 
   def asStmt(bs: BlockStatementContext): Stmt = {
     if (bs.statement == null) {
