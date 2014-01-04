@@ -27,7 +27,7 @@ object AppMain extends App {
       else success
     }
   }
-
+  println("pwd:" + new File("").getAbsolutePath)
   parser.parse(args, Config(null, new File("report.txt"), false, new File("output"))) map { config =>
     if (config.trend) {
       new Trend(config.src, config.dest).run
@@ -44,6 +44,7 @@ object AppMain extends App {
       println("done")
     }
   } getOrElse {
+    println("Unknown options: " + args.mkString)
   }
 
 }

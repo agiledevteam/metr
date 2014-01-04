@@ -14,30 +14,37 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker
 
 import com.lge.metr.JavaParser.CompilationUnitContext
 
+case class MethodStatEntry(sloc: Int, dloc: Double, cc: Int, name: String) extends Values {
+  def values: Seq[Any] = Seq(sloc, dloc, cc, name)
+}
+
+abstract class Resource {
+  def inputStream: InputStream
+}
+
+class StringResource(src: String) extends Resource {
+  def inputStream = new ByteArrayInputStream(src.getBytes)
+}
+
+class FileResource(f: File) extends Resource {
+  def inputStream = new FileInputStream(f)
+}
+
 class Metric extends MetricCounter {
 
   import JavaModel._
 
-  abstract class Resource {
-    def inputStream: InputStream
-  }
-  class StringResource(src: String) extends Resource {
-    def inputStream = new ByteArrayInputStream(src.getBytes)
-  }
-  class FileResource(f: File) extends Resource {
-    def inputStream = new FileInputStream(f)
-  }
-
-  val input = ListBuffer[Resource]()
+  val inputs = ListBuffer[Resource]()
 
   def addSource(src: String) {
-    input += new StringResource(src)
+    inputs += new StringResource(src)
   }
+
   def addSource(f: File) {
     if (f.isDirectory) {
       f.listFiles.foreach(addSource(_))
     } else if (f.getPath().endsWith(".java")) {
-      input += new FileResource(f)
+      inputs += new FileResource(f)
     }
   }
 
@@ -49,26 +56,27 @@ class Metric extends MetricCounter {
     p.compilationUnit();
   }
 
-  var compilationUnits: List[CompilationUnitContext] = List()
+  val entries = ListBuffer[MethodStatEntry]()
 
   def load() {
-    compilationUnits = input.toList map { i =>
-      parse(i.inputStream)
+    for {
+      input <- inputs
+      compilationUnit = parse(input.inputStream)
+      exe <- findExecutableIn(compilationUnit)
+    } {
+      entries += MethodStatEntry(sloc(exe).toInt, dloc(exe), cc(exe), exe.name)
     }
   }
 
   def generate(reportFile: File) {
-    val handlers: List[Executable => Any] = List(sloc(_), dloc(_), cc(_), m => m.name)
-    val p = new PrintWriter(reportFile)
-    allExecutables foreach { e =>
-      p.println(handlers.map(h => h(e)).mkString("\t"))
-    }
-    p.close
+    new TextGenerator(reportFile).generate(entries)
   }
 
-  def allExecutables: List[Executable] = {
-    compilationUnits.flatMap(findExecutableIn _)
-  }
+  def stat: StatEntry = StatEntry(
+    (1 - entries.map(_.dloc).sum / entries.map(_.sloc).sum) * 100,
+    entries.map(_.cc - 1).sum + 1,
+    entries.map(_.sloc).sum,
+    entries.map(_.dloc).sum)
 
   def findExecutableIn(cu: CompilationUnitContext): List[Executable] = {
     val listener = new TreeListener
