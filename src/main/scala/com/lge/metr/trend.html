@@ -45,11 +45,16 @@ $(function () {
                 tooltip: { pointFormat: "CN: {point.y:.2f}%" },
                 data: [CN_DATA]
             }, {
-                name: 'LOC',
+                name: 'SLOC',
                 yAxis: 1,
-                tooltip: { pointFormat: "LOC: {point.y}%" },
-                data: [LOC_DATA]
-            }]
+                tooltip: { pointFormat: "SLOC: {point.y}" },
+                data: [SLOC_DATA]
+            }, {
+              name: 'DLOC',
+              yAxis: 1,
+              tooltip: { pointFormat: "DLOC: {point.y:.2f}" },
+              data: [DLOC_DATA]
+          }]
         });
     });
     
