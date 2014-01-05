@@ -12,25 +12,7 @@ import org.scalatest.junit.JUnitRunner
 import scala.language.implicitConversions
 
 @RunWith(classOf[JUnitRunner])
-class LocTest extends FunSuite with MetricCounter {
-
-
-  def testSrc(src: String): String = {
-    val header =
-      """class Loc {
-        | public void loc() {
-        """.stripMargin
-    val footer =
-      """
-        | }
-        |}""".stripMargin
-    header + src + footer
-  }
-
-  implicit def strToBlock(body: String) = {
-    val f = Metric(testSrc(body))
-    f.allExecutables(0)
-  }
+class LocTest extends FunSuite with MetricCounter with MetricTest {
 
   test("straight forward plain loc") {
     val body = """
@@ -183,16 +165,17 @@ class LocTest extends FunSuite with MetricCounter {
   }
 
   def checkFile(testFile: String, testMethod: String) {
-    val f = Metric(new File(testFile))
     val weightP = "// ?([.0-9]+)".r
     val weights = Source.fromFile(testFile).getLines
       .map(weightP findFirstIn _)
       .collect {
         case Some(weightP(w)) => w.toDouble
       }.toList
-    val m = f.allExecutables.find(_.name.contains(testMethod)).get
-    expectResult(weights.sum)(dloc(m))
-    expectResult(weights.filter(_ != 0).size)(sloc(m))
+    val m = new Metric
+    val cu = m.parse(new FileResource(new File(testFile)).inputStream)
+    val e = m.findExecutableIn(cu).find(_.name.contains(testMethod)).get
+    expectResult(weights.sum)(dloc(e))
+    expectResult(weights.filter(_ != 0).size)(sloc(e))
   }
 
   test("sample input ") {
