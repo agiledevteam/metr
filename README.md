@@ -3,6 +3,13 @@ metr
 
 metric calculator for Java projects
 
+for a project:
+
+* cn - sum(sloc-dloc) / sum(sloc)
+* sloc sum
+* dloc sum
+* cc sum - sum(cc-1) + 1
+
 for each method:
 
 * sloc - source lines of code
@@ -15,7 +22,12 @@ for each method:
 run
 ===
 
-`sbt "run -s src"`
+* `sbt "run -s src"`
+
+options
+======
+
+* `-t` trend
 
 output
 ======
@@ -32,10 +44,11 @@ samples
 
 This project points to two submodules as samples: GitHub's android app, Google's iosched app.
 
-* `git submodule init/update` to retrieve sample projects' source
-* `samples/google-iosched` requires 'android-18', 'Google Repository' and 'Build Tool v18.0.1'. To build `./gradlew asDe`
-* `samples/github-android` requires 'android-16'. To build `mvn package`
+* after initial clone, `git submodule init/update` to retrieve sample projects' source
+ * `samples/google-iosched` requires 'android-18', 'Google Repository' and 'Build Tool v18.0.1'. To build `./gradlew asDe`
+ * `samples/github-android` requires 'android-16'. To build `mvn package`
 * In `samples` directory, run `scala run_samples.scala` to run `metr` on all samples. 
+* `samples/github-android-output` contains `trend` of `cn` and `sloc`
 
 
 notes
