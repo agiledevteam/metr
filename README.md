@@ -5,16 +5,13 @@ metric calculator for Java projects
 
 for a project:
 
-* cn - sum(sloc-dloc) / sum(sloc)
-* sloc sum
-* dloc sum
-* cc sum - sum(cc-1) + 1
+* cn = 1 - sum(dloc) / sum(sloc)
 
 for each method:
 
-* sloc - source lines of code
-* dloc - [dloc](https://github.com/agiledevteam/metr/wiki/What-is-DLOC%3F)
-* cc - cyclomatic complexity 
+* sloc = source lines of code
+* dloc = [dloc](https://github.com/agiledevteam/metr/wiki/What-is-DLOC%3F)
+* cc = cyclomatic complexity 
 * (not yet) ncalls - number of calls (including calls via overriding)
 
 [![Build Status](https://travis-ci.org/agiledevteam/metr.png)](https://travis-ci.org/agiledevteam/metr)
@@ -27,7 +24,8 @@ run
 options
 ======
 
-* `-t` trend
+* `-t` (or `--trend`) flag tracks all previous commits and generate `trend.txt` and `trend.html` which show how the cn metric changes.
+
 
 output
 ======
@@ -63,4 +61,3 @@ TODOs
 ====
 
 * cyclomatic complexity: method/class/package/project
-* trends (git history)
