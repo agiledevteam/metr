@@ -37,7 +37,7 @@ class Trend(src: File, out: File) {
   }
 
   def run() {
-    val commits = git.revList(relPath).take(1) // sampling.zipWithIndex.filter(_._2 % 10 == 0).map(_._1)
+    val commits = git.revList(relPath)
     val trend = for (c <- commits) yield {
       val tempDir = Files.createTempDirectory(null)
       checkoutSource(c, tempDir)
