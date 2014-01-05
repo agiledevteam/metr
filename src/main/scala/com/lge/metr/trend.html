@@ -13,13 +13,12 @@
 
 $(function () {
         $('#container').highcharts({
+          chart: {
+            zoomType: 'xy'
+          },
             title: {
                 text: 'CN Trend',
                 x: -20 //center
-            },
-            subtitle: {
-                text: 'Github for Android',
-                x: -20
             },
             xAxis: {
               type: 'datetime'
@@ -34,7 +33,6 @@ $(function () {
                 },
                 opposite: true
             }],
-
             legend: {
                 layout: 'vertical',
                 align: 'right',
@@ -44,12 +42,12 @@ $(function () {
             series: [{
                 name: 'CN',
                 yAxis: 0,
-                tooltip: { valueSuffix: '°%'},
+                tooltip: { pointFormat: "CN: {point.y:.2f}%" },
                 data: [CN_DATA]
             }, {
-                name: 'SLOC',
+                name: 'LOC',
                 yAxis: 1,
-                tooltip: { valueSuffix: ''},
+                tooltip: { pointFormat: "LOC: {point.y}%" },
                 data: [LOC_DATA]
             }]
         });
