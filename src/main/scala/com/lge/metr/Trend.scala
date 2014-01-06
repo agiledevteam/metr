@@ -10,43 +10,68 @@ import scala.concurrent.Future
 import scala.language.implicitConversions
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import org.eclipse.jgit.revwalk.RevCommit
+import org.eclipse.jgit.revwalk.RevObject
+import org.eclipse.jgit.revwalk.RevTree
+import org.eclipse.jgit.treewalk.TreeWalk
+import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.Constants
 
 case class StatEntry(cn: Double, cc: Int, sloc: Int, dloc: Double) extends Values {
   def values: Seq[Any] = Seq(cn, cc, sloc, dloc)
 }
+object StatEntry {
+  val zero = StatEntry(0, 0, 0, 0)
+  def plus(a: StatEntry, b: StatEntry) = {
+    val dloc = a.dloc + b.dloc
+    val sloc = a.sloc + b.sloc
+    val cc = a.cc + b.cc - 1
+    val cn = 100 * (1 - dloc / sloc)
+    StatEntry(cn, cc, sloc, dloc)
+  }
+}
 
 class Trend(src: File, out: File) {
-  require(new File(out, "commits").exists() || new File(out, "commits").mkdirs())
-
   val git = Git(src)
   val relPath = git.relative(src.getAbsoluteFile.toPath)
   val txtGenerator = new TextGenerator(new File(out, "trend.txt"))
   val htmlGenerator = new HtmlGenerator(new File(out, "trend.html"))
+  val cache = scala.collection.mutable.Map[String, StatEntry]()
 
-  def checkoutSource(c: Commit, tempDir: Path) {
-    git.checkoutTo(c, relPath, tempDir)
+  def metr(id: ObjectId): StatEntry = {
+    def metr_(): StatEntry = {
+      val loader = git.repo.open(id)
+      loader.getType match {
+        case Constants.OBJ_BLOB =>
+          Metric(loader.openStream).stat
+        case Constants.OBJ_TREE =>
+          git.lsTree(id, Suffix.java).map(metr(_)).foldLeft(StatEntry.zero)(StatEntry.plus)
+      }
+    }
+    cache getOrElseUpdate (ObjectId.toString(id), metr_)
   }
 
-  def metr(c: Commit, tempDir: Path): StatEntry = {
-    val m = Metric(tempDir.toFile)
-    println("metr done: "+c.toString)
-    tempDir.toFile.delete
-    val reportFile = out.toPath.resolve(Paths.get("commits", c.commitId+".txt"))
-    m.generate(reportFile.toFile)
-    m.stat
+  def metr(c: RevCommit): StatEntry = {
+    metr(git.revParse(c, relPath))
   }
 
   def run() {
-    val commits = git.revList(relPath)
-    val trend = for (c <- commits) yield {
-      val tempDir = Files.createTempDirectory(null)
-      checkoutSource(c, tempDir)
-      Future { c -> metr(c, tempDir) }
+    def toCommit(c: RevCommit): Commit = Commit(c.getCommitTime.toLong * 1000, c.getId.abbreviate(6).name)
+
+    print("retriving rev-list... ")
+    val commits = git revList relPath
+    println(commits.size)
+
+    val trend = commits map { c =>
+      val commit = toCommit(c)
+      println("processing... "+commit)
+      commit -> metr(c)
     }
-    val t = Await.result(Future.sequence(trend), Duration.Inf)
+
     println("generating...")
-    txtGenerator.generate(t.map(p => p._1 ++ p._2))
-    htmlGenerator.generate(t)
+    txtGenerator.generate(trend.map(p => p._1 ++ p._2))
+    htmlGenerator.generate(trend)
+    println("done.")
   }
 
 }

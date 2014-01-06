@@ -26,6 +26,8 @@ libraryDependencies += "com.netflix.rxjava" % "rxjava-scala" % "0.15.1"
 
 libraryDependencies += "org.antlr" % "antlr4-runtime" % "4.1"
 
+libraryDependencies += "org.eclipse.jgit" % "org.eclipse.jgit" % "3.2.0.201312181205-r"
+
 resolvers += Resolver.sonatypeRepo("public")
 
 scalacOptions ++= Seq("-feature", "-deprecation")

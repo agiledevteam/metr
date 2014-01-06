@@ -28,9 +28,11 @@ class Metric {
 
   val inputs = ListBuffer[Resource]()
 
-  def addSource(src: String) {
-    inputs += new StringResource(src)
-  }
+  def addSource(src: Resource): Unit =
+    inputs += src
+
+  def addSource(src: String): Unit =
+    addSource(new StringResource(src))
 
   def addSource(f: File) {
     if (f.isDirectory) {
@@ -57,13 +59,15 @@ class Metric {
 }
 
 object Metric {
-  def apply(src: String): Metric = {
+  def apply(src: String): Metric = apply(new StringResource(src))
+  def apply(src: InputStream): Metric = apply(new Resource() { val inputStream = src; })
+  def apply(src: File): Metric = {
     val launcher = new Metric
     launcher.addSource(src)
     launcher.load
     launcher
   }
-  def apply(src: File): Metric = {
+  def apply(src: Resource): Metric = {
     val launcher = new Metric
     launcher.addSource(src)
     launcher.load

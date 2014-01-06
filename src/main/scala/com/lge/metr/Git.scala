@@ -1,13 +1,30 @@
 package com.lge.metr
 
 import java.io.File
-import java.nio.file.Paths
-import scala.sys.process.fileToProcess
-import scala.sys.process.stringSeqToProcess
-import rx.lang.scala.Observable
-import rx.lang.scala.Subscription
 import java.nio.file.Path
-import rx.lang.scala.subjects.ReplaySubject
+import scala.collection.JavaConversions.iterableAsScalaIterable
+import scala.collection.mutable.ListBuffer
+import scala.sys.process.fileToProcess
+import org.eclipse.jgit.lib.AnyObjectId
+import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.revwalk.RevCommit
+import org.eclipse.jgit.revwalk.RevSort
+import org.eclipse.jgit.revwalk.RevWalk
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.eclipse.jgit.treewalk.TreeWalk
+import org.eclipse.jgit.treewalk.filter.PathFilter
+
+case class Suffix(buf: Array[Byte], len: Int)
+
+object Suffix {
+  val java = convert(".java")
+
+  def convert(suffix: String): Suffix = {
+    val bytes = suffix.getBytes
+    Suffix(bytes, bytes.length)
+  }
+}
 
 class Git(gitWorkTree: Path) {
   require(gitWorkTree.isAbsolute)
@@ -25,24 +42,38 @@ class Git(gitWorkTree: Path) {
     }
   }
 
+  val repo: Repository = new FileRepositoryBuilder().setGitDir(gitDir.toFile).build
+  val walk: RevWalk = new RevWalk(repo)
+
   val gitDirOption = "--git-dir="+gitDir
 
   def relative(path: Path): Path = gitWorkTree.relativize(path)
 
-  def revList(path: Path): List[Commit] = {
-    val cmd = Seq("git", gitDirOption, "rev-list", "HEAD", "--timestamp", "--reverse", "--date-order", "--", path.toString)
-    println(cmd.mkString(" "))
-    for (line <- cmd.lines.toList) yield {
-      val fields = line.split(" ")
-      Commit(fields(0).toLong * 1000, fields(1))
-    }
+  def revList(path: Path): List[RevCommit] = {
+    // git rev-list HEAD --reverse --date-order -- path
+    val walk: RevWalk = new RevWalk(repo)
+    val head = walk.parseCommit(repo.resolve("HEAD"))
+    walk.markStart(head)
+    walk.sort(RevSort.COMMIT_TIME_DESC, true)
+    walk.sort(RevSort.REVERSE, true)
+    walk.setTreeFilter(PathFilter.create(path.toString)) // TODO this doesn't work well 
+    walk.toList
   }
 
-  def checkoutTo(commit: Commit, path: Path, dest: Path): Unit = this.synchronized {
-    val workTreeOption = "--work-tree="+dest
-    val cmd = Seq("git", gitDirOption, workTreeOption, "checkout", commit.commitId, "--", path.toString)
-    println(cmd.mkString(" "))
-    cmd.!
+  def revParse(c: RevCommit, path: Path): ObjectId = {
+    repo.resolve(ObjectId.toString(c.getId)+":"+path.toString)
+  }
+
+  def lsTree(id: AnyObjectId, suffix: Suffix): List[ObjectId] = {
+    val result = ListBuffer[ObjectId]()
+    val tree = new TreeWalk(repo)
+    tree.addTree(id)
+    tree.setRecursive(false)
+    while (tree.next()) {
+      if (tree.isSubtree || tree.isPathSuffix(suffix.buf, suffix.len))
+        result += tree.getObjectId(0)
+    }
+    result.toList
   }
 }
 
