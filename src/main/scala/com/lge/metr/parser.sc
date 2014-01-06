@@ -3,27 +3,41 @@ package com.lge.metr
 import java.nio.file.Paths
 import java.io.File
 import scala.sys.process._
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.eclipse.jgit.revwalk.RevWalk
 
 object parser {
-  new HtmlGenerator(new File("")).generate(List())//> java.io.BufferedInputStream@71ce109a
+   val r = new FileRepositoryBuilder().setGitDir(new File("/Users/jooyunghan/work/scala/metr/.git/modules/samples/github-android")).build
+                                                  //> r  : <error> = Repository[/Users/jooyunghan/work/scala/metr/.git/modules/sam
+                                                  //| ples/github-android]
+   val h = r.getRef("refs/heads/master")          //> h  : <error> = Ref[refs/heads/master=c6bdc122f2e8ac3594d7b83b998bb06bb774848
+                                                  //| 8]
+   val w = new RevWalk(r)                         //> w  : <error> = org.eclipse.jgit.revwalk.RevWalk@5f3c750c
+   w.parseCommit(h.getObjectId)                   //> res0: <error> = commit c6bdc122f2e8ac3594d7b83b998bb06bb7748488 1386790622 -
+                                                  //| ----p
+  new HtmlGenerator(new File("")).generate(List())//> java.io.FileNotFoundException:  (No such file or directory)
+                                                  //| 	at java.io.FileOutputStream.open(Native Method)
+                                                  //| 	at java.io.FileOutputStream.<init>(FileOutputStream.java:212)
+                                                  //| 	at java.io.FileOutputStream.<init>(FileOutputStream.java:165)
+                                                  //| 	at java.io.PrintWriter.<init>(PrintWriter.java:263)
+                                                  //| 	at com.lge.metr.HtmlGenerator.generate(HtmlGenerator.scala:14)
+                                                  //| 	at com.lge.metr.parser$$anonfun$main$1.apply$mcV$sp(com.lge.metr.parser.
+                                                  //| scala:14)
+                                                  //| 	at org.scalaide.worksheet.runtime.library.WorksheetSupport$$anonfun$$exe
+                                                  //| cute$1.apply$mcV$sp(WorksheetSupport.scala:76)
+                                                  //| 	at org.scalaide.worksheet.runtime.library.WorksheetSupport$.redirected(W
+                                                  //| orksheetSupport.scala:65)
+                                                  //| 	at org.scalaide.worksheet.runtime.library.WorksheetSupport$.$execute(Wor
+                                                  //| ksheetSupport.scala:75)
+                                                  //| 	at com.lge.metr.parser$.main(com.lge.metr.parser.scala:9)
+                                                  //| 	at com.lge.metr.parser.main(com.lge.metr.parser.scala)
   val sysClassLoader = java.lang.ClassLoader.getSystemClassLoader()
-                                                  //> sysClassLoader  : ClassLoader = sun.misc.Launcher$AppClassLoader@7dc4cd9
   getClass().getResource("/com/lge/metr/trend.html")
-                                                  //> res0: java.net.URL = file:/Users/jooyunghan/work/scala/metr/target/scala-2.1
-                                                  //| 0/classes/com/lge/metr/trend.html
 "gitdir: ../../.git/modules/samples/github-android".span(_ != ' ')
-                                                  //> res1: (String, String) = (gitdir:," ../../.git/modules/samples/github-androi
-                                                  //| d")
   val timestamp = "1386638707 42b0768db48cbb3513a19985b8c4982b6efa8da1".split(" ")(0)
-                                                  //> timestamp  : String = 1386638707
   val dateFormatter = new java.text.SimpleDateFormat
-                                                  //> dateFormatter  : java.text.SimpleDateFormat = java.text.SimpleDateFormat@a94
-                                                  //| 27c06
-  dateFormatter.format(timestamp.toLong * 1000)   //> res2: String = 12/10/13 10:25 AM
+  dateFormatter.format(timestamp.toLong * 1000)
   
   new File("/Users/jooyunghan/work/scala/metr/samples/github-android/.git").cat.!!
-                                                  //> res3: String = "gitdir: ../../.git/modules/samples/github-android
-                                                  //| "
   Paths.get("/Users").relativize(Paths.get("/Users/jooyunghan/work") )
-                                                  //> res4: java.nio.file.Path = jooyunghan/work
 }

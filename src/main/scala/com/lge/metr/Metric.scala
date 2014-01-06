@@ -4,15 +4,8 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
-import java.io.PrintWriter
 
 import scala.collection.mutable.ListBuffer
-
-import org.antlr.v4.runtime.ANTLRInputStream
-import org.antlr.v4.runtime.CommonTokenStream
-import org.antlr.v4.runtime.tree.ParseTreeWalker
-
-import com.lge.metr.JavaParser.CompilationUnitContext
 
 case class MethodStatEntry(sloc: Int, dloc: Double, cc: Int, name: String) extends Values {
   def values: Seq[Any] = Seq(sloc, dloc, cc, name)
@@ -30,9 +23,8 @@ class FileResource(f: File) extends Resource {
   def inputStream = new FileInputStream(f)
 }
 
-class Metric extends MetricCounter {
-
-  import JavaModel._
+class Metric {
+  val java = new JavaMetric()
 
   val inputs = ListBuffer[Resource]()
 
@@ -48,25 +40,10 @@ class Metric extends MetricCounter {
     }
   }
 
-  def parse(in: InputStream): CompilationUnitContext = {
-    val input = new ANTLRInputStream(in);
-    val source = new JavaLexer(input);
-    val tokens = new CommonTokenStream(source);
-    val p = new JavaParser(tokens);
-    p.compilationUnit();
-  }
-
   val entries = ListBuffer[MethodStatEntry]()
 
-  def load() {
-    for {
-      input <- inputs
-      compilationUnit = parse(input.inputStream)
-      exe <- findExecutableIn(compilationUnit)
-    } {
-      entries += MethodStatEntry(sloc(exe).toInt, dloc(exe), cc(exe), exe.name)
-    }
-  }
+  def load: Unit =
+    for (input <- inputs) entries ++= java.process(input)
 
   def generate(reportFile: File) {
     new TextGenerator(reportFile).generate(entries)
@@ -77,12 +54,6 @@ class Metric extends MetricCounter {
     entries.map(_.cc - 1).sum + 1,
     entries.map(_.sloc).sum,
     entries.map(_.dloc).sum)
-
-  def findExecutableIn(cu: CompilationUnitContext): List[Executable] = {
-    val listener = new TreeListener
-    new ParseTreeWalker().walk(listener, cu)
-    listener.executables.toList
-  }
 }
 
 object Metric {
