@@ -55,11 +55,14 @@ class Trend(src: File, out: File) {
     metr(git.revParse(c, relPath))
   }
 
-  def run() {
+  def run(debug: Boolean) {
     def toCommit(c: RevCommit): Commit = Commit(c.getCommitTime.toLong * 1000, c.getId.abbreviate(6).name)
 
     print("retriving rev-list... ")
-    val commits = git revList relPath
+    val commits = {
+      val orig = git revList relPath
+      if (debug) orig.take(5) else orig
+    }
     println(commits.size)
 
     val trend = commits map { c =>

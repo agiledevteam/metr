@@ -1,72 +1,163 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-  <title>Trend</title>
-  <script type='text/javascript' src='http://code.jquery.com/jquery-1.10.2.min.js'></script>
-  <style type='text/css'>
-  </style>
-  
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>Trend</title>
+<script type='text/javascript'
+	src='http://code.jquery.com/jquery-1.10.2.min.js'></script>
+<style type='text/css'>
+</style>
 
 
-<script type='text/javascript'>//<![CDATA[ 
 
-$(function () {
-        $('#container').highcharts({
-          chart: {
-            zoomType: 'xy'
-          },
-            title: {
-                text: 'CN Trend',
-                x: -20 //center
-            },
-            xAxis: {
-              type: 'datetime'
-           },
-            yAxis: [{
-                title: {
-                    text: 'CN'
-                }
-            }, {
-                title: {
-                    text: 'Total Method LOC'
-                },
-                opposite: true
-            }],
-            legend: {
-                layout: 'vertical',
-                align: 'right',
-                verticalAlign: 'middle',
-                borderWidth: 0
-            },
-            series: [{
-                name: 'CN',
-                yAxis: 0,
-                tooltip: { pointFormat: "CN: {point.y:.2f}%" },
-                data: [CN_DATA]
-            }, {
-                name: 'SLOC',
-                yAxis: 1,
-                tooltip: { pointFormat: "SLOC: {point.y}" },
-                data: [SLOC_DATA]
-            }]
-        });
+<script type='text/javascript'>
+  //<![CDATA[ 
+
+  function cn_time() {
+    $('#container_cn_time').highcharts({
+      chart : {
+        zoomType : 'xy'
+      },
+      title : {
+        text : 'CN-Time',
+        x : -20
+      },
+      xAxis : {
+        type : 'datetime'
+      },
+      yAxis : [ {
+        title : {
+          text : 'CN'
+        }
+      }, {
+        title : {
+          text : 'Total Method LOC'
+        },
+        opposite : true
+      } ],
+      legend : {
+        layout : 'vertical',
+        align : 'right',
+        verticalAlign : 'middle',
+        borderWidth : 0
+      },
+      series : [ {
+        name : 'CN',
+        yAxis : 0,
+        tooltip : {
+          pointFormat : "CN: {point.y:.2f}%"
+        },
+        data : [ DATA_TIME_CN ]
+      }, {
+        name : 'SLOC',
+        yAxis : 1,
+        tooltip : {
+          pointFormat : "SLOC: {point.y}"
+        },
+        data : [ DATA_TIME_SLOC ]
+      } ]
     });
-    
+  }
+  function cn_commit() {
+    $('#container_cn_commit').highcharts({
+      chart : {
+        zoomType : 'xy'
+      },
+      title : {
+        text : 'CN-Commit',
+        x : -20
+      },
+      xAxis : {
+        title : {
+          text : 'Commit'
+        }
+      },
+      yAxis : [ {
+        title : {
+          text : 'CN'
+        }
+      }, {
+        title : {
+          text : 'Total Method LOC'
+        },
+        opposite : true
+      } ],
+      legend : {
+        layout : 'vertical',
+        align : 'right',
+        verticalAlign : 'middle',
+        borderWidth : 0
+      },
+      series : [ {
+        name : 'CN',
+        yAxis : 0,
+        tooltip : {
+          pointFormat : "CN: {point.y:.2f}%"
+        },
+        data : [ DATA_CN ]
+      }, {
+        name : 'SLOC',
+        yAxis : 1,
+        tooltip : {
+          pointFormat : "SLOC: {point.y}"
+        },
+        data : [ DATA_SLOC ]
+      } ]
+    });
+  }
+  function cn_sloc() {
+    $('#container_cn_sloc').highcharts({
+      chart : {
+        zoomType : 'xy'
+      },
+      title : {
+        text : 'CN-SLOC',
+        x : -20
+      },
+      xAxis : {
+        title : {
+          text : 'Commit'
+        }
+      },
+      yAxis : {
+        title : {
+          text : 'CN'
+        }
+      },
+      legend : {
+        layout : 'vertical',
+        align : 'right',
+        verticalAlign : 'middle',
+        borderWidth : 0
+      },
+      series : [ {
+        data : [ DATA_SLOC_CN ]
+      } ]
+    });
+  }
+  $(function() {
+    cn_time();
+    cn_commit();
+    cn_sloc();
+  });
 
-//]]>  
-
+  //]]>
 </script>
 
 
 </head>
 <body>
-  <script src="http://code.highcharts.com/highcharts.js"></script>
-<script src="http://code.highcharts.com/modules/exporting.js"></script>
+	<script src="http://code.highcharts.com/highcharts.js"></script>
+	<script src="http://code.highcharts.com/modules/exporting.js"></script>
 
-<div id="container" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+	<div id="container_cn_time"
+		style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+	<div id="container_cn_commit"
+		style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+	<div id="container_cn_sloc"
+		style="min-width: 310px; height: 400px; margin: 0 auto"></div>
 
-  
+
 </body>
 
 
