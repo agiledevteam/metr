@@ -53,10 +53,10 @@ class Git(gitWorkTree: Path) {
     else Some(relPath.toString.replaceAllLiterally(File.separator, "/")) // unixify
   }
 
-  def revList(path: Option[String]): List[RevCommit] = {
-    //println("git rev-list HEAD --reverse --date-order -- "+path)
+  def revList(start: String, path: Option[String]): List[RevCommit] = {
+    //println("git rev-list --reverse --date-order " + start+ " -- "+path)
     val walk: RevWalk = new RevWalk(repo)
-    val head = walk.parseCommit(repo.resolve("HEAD"))
+    val head = walk.parseCommit(repo.resolve(start))
     walk.markStart(head)
     walk.sort(RevSort.COMMIT_TIME_DESC, true)
     walk.sort(RevSort.REVERSE, true)

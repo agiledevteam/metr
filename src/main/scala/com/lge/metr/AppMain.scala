@@ -3,7 +3,7 @@ package com.lge.metr
 import java.io.File
 import scala.Array.canBuildFrom
 
-case class Config(src: File, out: File, trend: Boolean, dest: File, debug: Boolean = false)
+case class Config(src: File, out: File, trend: Boolean, commit: String, dest: File, debug: Boolean = false)
 
 object AppMain extends App {
   val parser = new scopt.OptionParser[Config]("metr") {
@@ -18,8 +18,11 @@ object AppMain extends App {
     opt[Unit]('t', "trend") optional () valueName ("look up all commits from current branch") action { (_, c) =>
       c.copy(trend = true)
     }
+    opt[String]('c', "commit") optional () valueName ("starting commit") action { (x, c) =>
+      c.copy(commit = x)
+    }
     opt[Unit]('g', "debug") hidden () action { (_, c) =>
-    c.copy(debug = true)
+      c.copy(debug = true)
     }
     opt[String]('d', "dest") optional () valueName ("destination for trend") action { (x, c) =>
       c.copy(dest = new File(x))
@@ -30,10 +33,10 @@ object AppMain extends App {
       else success
     }
   }
-  println("pwd:" + new File("").getAbsolutePath)
-  parser.parse(args, Config(null, new File("report.txt"), false, new File("output"))) map { config =>
+  println("pwd:"+new File("").getAbsolutePath)
+  parser.parse(args, Config(null, new File("report.txt"), false, "HEAD", new File("output"))) map { config =>
     if (config.trend) {
-      new Trend(config.src, config.dest, config.debug).run()
+      new Trend(config.src, config.dest, config.debug).run(config.commit)
     } else {
       val metr = new Metric
       metr.addSource(config.src)
@@ -47,7 +50,7 @@ object AppMain extends App {
       println("done")
     }
   } getOrElse {
-    println("Unknown options: " + args.mkString)
+    println("Unknown options: "+args.mkString)
   }
 
 }

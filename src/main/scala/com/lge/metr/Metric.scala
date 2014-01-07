@@ -45,7 +45,7 @@ class Metric {
   val entries = ListBuffer[MethodStatEntry]()
 
   def load: Unit =
-    for (input <- inputs) entries ++= java.process(input)
+    inputs.foreach(in => entries ++= java.process(in))
 
   def generate(reportFile: File) {
     new TextGenerator(reportFile).generate(entries)

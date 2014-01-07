@@ -16,6 +16,7 @@ import org.eclipse.jgit.revwalk.RevTree
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Constants
+import scala.util._
 
 case class StatEntry(cn: Double, cc: Int, sloc: Int, dloc: Double) extends Values {
   def values: Seq[Any] = Seq(cn, cc, sloc, dloc)
@@ -53,16 +54,15 @@ class Trend(src: File, out: File, debug: Boolean) {
     cache getOrElseUpdate (ObjectId.toString(id), metr_)
   }
 
-  def metr(c: RevCommit): StatEntry = {
-    metr(git.revParse(c, relPath))
-  }
+  def metr(c: RevCommit): Try[StatEntry] =
+    Try(metr(git.revParse(c, relPath)))
 
-  def run() {
+  def run(start: String) {
     def toCommit(c: RevCommit): Commit = Commit(c.getCommitTime.toLong * 1000, c.getId.abbreviate(6).name)
 
     print("retriving rev-list... ")
     val commits = {
-      val orig = git revList relPath
+      val orig = git.revList(start, relPath)
       if (debug) orig.take(5) else orig
     }
     println(commits.size)
@@ -70,12 +70,12 @@ class Trend(src: File, out: File, debug: Boolean) {
     val trend = commits map { c =>
       val commit = toCommit(c)
       println("processing... "+commit)
-      commit -> metr(c)
+      metr(c).map(toCommit(c) -> _)
     }
 
     println("generating...")
-    txtGenerator.generate(trend.map(p => p._1 ++ p._2))
-    htmlGenerator.generate(trend)
+    txtGenerator.generate(trend.collect { case Success(p) => p._1 ++ p._2 })
+    htmlGenerator.generate(trend.collect { case Success(p) => p })
     println("done.")
   }
 
