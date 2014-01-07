@@ -2,9 +2,11 @@ package com.lge.metr
 
 import java.io.File
 import java.nio.file.Path
+
 import scala.collection.JavaConversions.iterableAsScalaIterable
 import scala.collection.mutable.ListBuffer
 import scala.sys.process.fileToProcess
+
 import org.eclipse.jgit.lib.AnyObjectId
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
@@ -44,8 +46,6 @@ class Git(gitWorkTree: Path) {
 
   val repo: Repository = new FileRepositoryBuilder().setGitDir(gitDir.toFile).build
   val walk: RevWalk = new RevWalk(repo)
-
-  val gitDirOption = "--git-dir="+gitDir
 
   def relative(path: Path): Option[String] = {
     val relPath = gitWorkTree.relativize(path).toString
