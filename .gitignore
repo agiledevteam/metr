@@ -5,6 +5,7 @@ lib_managed/
 .settings
 .cache
 .worksheet
+.classpath
 
 report.txt
 output

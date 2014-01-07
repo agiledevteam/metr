@@ -33,7 +33,7 @@ object AppMain extends App {
   println("pwd:" + new File("").getAbsolutePath)
   parser.parse(args, Config(null, new File("report.txt"), false, new File("output"))) map { config =>
     if (config.trend) {
-      new Trend(config.src, config.dest).run(config.debug)
+      new Trend(config.src, config.dest, config.debug).run()
     } else {
       val metr = new Metric
       metr.addSource(config.src)

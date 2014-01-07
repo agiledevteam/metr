@@ -31,14 +31,15 @@ object StatEntry {
   }
 }
 
-class Trend(src: File, out: File) {
+class Trend(src: File, out: File, debug: Boolean) {
   val git = Git(src)
   val relPath = git.relative(src.getAbsoluteFile.toPath)
   val txtGenerator = new TextGenerator(new File(out, "trend.txt"))
   val htmlGenerator = new HtmlGenerator(new File(out, "trend.html"))
   val cache = scala.collection.mutable.Map[String, StatEntry]()
 
-  def metr(id: ObjectId): StatEntry = {
+  def metr(entity: (String, ObjectId)): StatEntry = {
+    val (name, id) = entity
     def metr_(): StatEntry = {
       val loader = git.repo.open(id)
       loader.getType match {
@@ -55,7 +56,7 @@ class Trend(src: File, out: File) {
     metr(git.revParse(c, relPath))
   }
 
-  def run(debug: Boolean) {
+  def run() {
     def toCommit(c: RevCommit): Commit = Commit(c.getCommitTime.toLong * 1000, c.getId.abbreviate(6).name)
 
     print("retriving rev-list... ")

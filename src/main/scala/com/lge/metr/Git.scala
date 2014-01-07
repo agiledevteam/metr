@@ -47,31 +47,36 @@ class Git(gitWorkTree: Path) {
 
   val gitDirOption = "--git-dir="+gitDir
 
-  def relative(path: Path): Path = gitWorkTree.relativize(path)
+  def relative(path: Path): Option[String] = {
+    val relPath = gitWorkTree.relativize(path).toString
+    if (relPath.isEmpty) None
+    else Some(relPath.toString.replaceAllLiterally(File.separator, "/")) // unixify
+  }
 
-  def revList(path: Path): List[RevCommit] = {
-    // git rev-list HEAD --reverse --date-order -- path
+  def revList(path: Option[String]): List[RevCommit] = {
+    //println("git rev-list HEAD --reverse --date-order -- "+path)
     val walk: RevWalk = new RevWalk(repo)
     val head = walk.parseCommit(repo.resolve("HEAD"))
     walk.markStart(head)
     walk.sort(RevSort.COMMIT_TIME_DESC, true)
     walk.sort(RevSort.REVERSE, true)
-    walk.setTreeFilter(PathFilter.create(path.toString)) // TODO this doesn't work well 
+    path.map(s => walk setTreeFilter (PathFilter create s)) // TODO this doesn't work well
     walk.toList
   }
 
-  def revParse(c: RevCommit, path: Path): ObjectId = {
-    repo.resolve(ObjectId.toString(c.getId)+":"+path.toString)
+  def revParse(c: RevCommit, path: Option[String]): (String, ObjectId) = {
+    val name = path.getOrElse("")
+    name -> repo.resolve(ObjectId.toString(c.getId)+":"+name)
   }
 
-  def lsTree(id: AnyObjectId, suffix: Suffix): List[ObjectId] = {
-    val result = ListBuffer[ObjectId]()
+  def lsTree(id: AnyObjectId, suffix: Suffix): List[(String, ObjectId)] = {
+    val result = ListBuffer[(String, ObjectId)]()
     val tree = new TreeWalk(repo)
     tree.addTree(id)
     tree.setRecursive(false)
     while (tree.next()) {
       if (tree.isSubtree || tree.isPathSuffix(suffix.buf, suffix.len))
-        result += tree.getObjectId(0)
+        result += Tuple2(tree.getNameString, tree.getObjectId(0))
     }
     result.toList
   }
