@@ -32,6 +32,7 @@ object StatEntry {
 }
 
 class Trend(src: File, out: File, debug: Boolean) {
+  require(out.exists || out.mkdirs)
   val git = Git(src)
   val relPath = git.relative(src.getAbsoluteFile.toPath)
   val txtGenerator = new TextGenerator(new File(out, "trend.txt"))
