@@ -17,6 +17,8 @@ import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Constants
 import scala.util._
+import java.util.Date
+import java.util.Calendar
 
 case class StatEntry(cn: Double, cc: Int, sloc: Int, dloc: Double) extends Values {
   def values: Seq[Any] = Seq(cn, cc, sloc, dloc)
@@ -57,12 +59,16 @@ class Trend(src: File, out: File, debug: Boolean) {
   def metr(c: RevCommit): Try[StatEntry] =
     Try(metr(git.revParse(c, relPath)))
 
-  def run(start: String) {
-    def toCommit(c: RevCommit): Commit = Commit(c.getCommitTime.toLong * 1000, c.getId.abbreviate(6).name)
+  def commitTime(c: RevCommit): Long = c.getCommitTime.toLong * 1000
 
-    print("retriving rev-list... ")
+  def run(start: String) {
+    def toCommit(c: RevCommit): Commit = Commit(commitTime(c), c.getId.abbreviate(6).name)
+
+    print("retriving rev-list...(max one year) ")
     val commits = {
-      val orig = git.revList(start, relPath)
+      val oneYearBefore = { val c = Calendar.getInstance; c.add(Calendar.YEAR, -1); c.getTimeInMillis }
+      val orig = git.revList(start, relPath).
+        filter(c => commitTime(c) > oneYearBefore)
       if (debug) orig.take(5) else orig
     }
     println(commits.size)
