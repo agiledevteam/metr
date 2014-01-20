@@ -42,18 +42,17 @@ class Trend(src: File, out: File, debug: Boolean) {
   val htmlGenerator = new HtmlGenerator(new File(out, "trend.html"))
   val cache = scala.collection.mutable.Map[String, StatEntry]()
 
-  def metr(entity: (String, ObjectId)): StatEntry = {
-    val (name, id) = entity
+  def metr(entry: TreeEntry): StatEntry = {
     def metr_(): StatEntry = {
-      val loader = git.repo.open(id)
+      val loader = git.repo.open(entry.id)
       loader.getType match {
         case Constants.OBJ_BLOB =>
           Metric(loader.openStream).stat
         case Constants.OBJ_TREE =>
-          git.lsTree(id, Suffix.java).map(metr(_)).foldLeft(StatEntry.zero)(StatEntry.plus)
+          git.lsTree(entry.id, Suffix.java).map(metr(_)).foldLeft(StatEntry.zero)(StatEntry.plus)
       }
     }
-    cache getOrElseUpdate (ObjectId.toString(id), metr_)
+    cache getOrElseUpdate (ObjectId.toString(entry.id), metr_)
   }
 
   def metr(c: RevCommit): Try[StatEntry] =
@@ -62,7 +61,7 @@ class Trend(src: File, out: File, debug: Boolean) {
   def commitTime(c: RevCommit): Long = c.getCommitTime.toLong * 1000
 
   def run(start: String) {
-    def toCommit(c: RevCommit): Commit = Commit(commitTime(c), c.getId.abbreviate(6).name)
+    def toCommit(c: RevCommit): Commit = Commit(commitTime(c), c.getId.abbreviate(7).name)
 
     print("retriving rev-list...(max one year) ")
     val commits = {

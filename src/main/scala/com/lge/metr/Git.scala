@@ -28,6 +28,8 @@ object Suffix {
   }
 }
 
+case class TreeEntry(name: String, id: ObjectId)
+
 class Git(gitWorkTree: Path) {
   require(gitWorkTree.isAbsolute)
 
@@ -64,19 +66,19 @@ class Git(gitWorkTree: Path) {
     walk.toList
   }
 
-  def revParse(c: RevCommit, path: Option[String]): (String, ObjectId) = {
+  def revParse(c: RevCommit, path: Option[String]): TreeEntry = {
     val name = path.getOrElse("")
-    name -> repo.resolve(ObjectId.toString(c.getId)+":"+name)
+    TreeEntry(name, repo.resolve(ObjectId.toString(c.getId)+":"+name))
   }
 
-  def lsTree(id: AnyObjectId, suffix: Suffix): List[(String, ObjectId)] = {
-    val result = ListBuffer[(String, ObjectId)]()
+  def lsTree(id: AnyObjectId, suffix: Suffix): List[TreeEntry] = {
+    val result = ListBuffer[TreeEntry]()
     val tree = new TreeWalk(repo)
     tree.addTree(id)
     tree.setRecursive(false)
     while (tree.next()) {
       if (tree.isSubtree || tree.isPathSuffix(suffix.buf, suffix.len))
-        result += Tuple2(tree.getNameString, tree.getObjectId(0))
+        result += TreeEntry(tree.getNameString, tree.getObjectId(0))
     }
     result.toList
   }
