@@ -42,7 +42,8 @@ class Trend(src: File, out: File, debug: Boolean) {
   val htmlGenerator = new HtmlGenerator(new File(out, "trend.html"))
   val cache = scala.collection.mutable.Map[String, StatEntry]()
 
-  var counter = 0
+  var blobCounter = 0
+  var treeCounter = 0
 
   def metr(entity: (String, ObjectId)): StatEntry = {
     val (name, id) = entity
@@ -50,9 +51,10 @@ class Trend(src: File, out: File, debug: Boolean) {
       val loader = git.repo.open(id)
       loader.getType match {
         case Constants.OBJ_BLOB =>
-          counter += 1
+          blobCounter += 1
           Metric(loader.openStream).stat
         case Constants.OBJ_TREE =>
+          treeCounter += 1
           git.lsTree(id, Suffix.java).map(metr(_)).foldLeft(StatEntry.zero)(StatEntry.plus)
       }
     }
@@ -60,9 +62,10 @@ class Trend(src: File, out: File, debug: Boolean) {
   }
 
   def metr(c: RevCommit): Try[StatEntry] = {
-    counter = 0
+    blobCounter = 0
+    treeCounter = 0
     val t = Try(metr(git.revParse(c, relPath)))
-    println(".. "+counter)
+    println(s".. $blobCounter blobs, $treeCounter trees")
     t
   }
 
