@@ -20,17 +20,17 @@ import scala.util._
 import java.util.Date
 import java.util.Calendar
 
-case class StatEntry(cn: Double, cc: Int, sloc: Int, dloc: Double) extends Values {
+case class StatEntry(cc: Int, sloc: Int, dloc: Double) extends Values {
+  lazy val cn = 100 * (1 - dloc / sloc)
   def values: Seq[Any] = Seq(cn, cc, sloc, dloc)
 }
 object StatEntry {
-  val zero = StatEntry(0, 0, 0, 0)
+  val zero = StatEntry(0, 0, 0)
   def plus(a: StatEntry, b: StatEntry) = {
     val dloc = a.dloc + b.dloc
     val sloc = a.sloc + b.sloc
     val cc = a.cc + b.cc - 1
-    val cn = 100 * (1 - dloc / sloc)
-    StatEntry(cn, cc, sloc, dloc)
+    StatEntry(cc, sloc, dloc)
   }
 }
 
@@ -62,7 +62,7 @@ class Trend(src: File, out: File, debug: Boolean) {
   def metr(c: RevCommit): Try[StatEntry] = {
     counter = 0
     val t = Try(metr(git.revParse(c, relPath)))
-    println(".. " + counter)
+    println(".. "+counter)
     t
   }
 
