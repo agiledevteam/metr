@@ -3,6 +3,10 @@ import java.io._
 
 case class Config(name: String, repo: String) 
 
+
+val metr = "../target/scala-2.10/metr-assembly-1.0.jar"
+val java_opts = "-Xms512m -Xmx512m"
+
 val samples = List(
   Config("Alarm", "LG_apps/android/vendor/lge/apps/AlarmClock4.git"),
   Config("TDMB", "LG_apps/android/vendor/lge/apps/TDMB4.git"),
@@ -85,12 +89,9 @@ val samples = List(
 ) 
 
 
-s"mkdir /home/chisun/clone".!
-
-
 samples foreach { c =>
-  println("git clone ... "+ c.name)
-  s"git clone ssh://chisun.joung@lgapps.lge.com:29427/${c.repo} -b LG_apps_master /home/chisun/clone/${c.name}".!
+  println("Calculating Code Fat Trend ... "+ c.name)
+  s"java $java_opts -jar $metr -t -s /home/chisun/clone/${c.name}/src -d /home/chisun/clone/trend_output/${c.name}".!
 }
 
 println("ok")
