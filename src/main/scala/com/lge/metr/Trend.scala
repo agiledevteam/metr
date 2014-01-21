@@ -1,37 +1,25 @@
 package com.lge.metr
 
 import java.io.File
-import java.io.PrintWriter
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.language.implicitConversions
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import org.eclipse.jgit.revwalk.RevCommit
-import org.eclipse.jgit.revwalk.RevObject
-import org.eclipse.jgit.revwalk.RevTree
-import org.eclipse.jgit.treewalk.TreeWalk
-import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.lib.Constants
-import scala.util._
-import java.util.Date
 import java.util.Calendar
+
+import scala.collection.concurrent.TrieMap
+import scala.language.implicitConversions
+import scala.util.Success
+import scala.util.Try
+
+import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.revwalk.RevCommit
 
 case class StatEntry(cc: Int, sloc: Int, dloc: Double) extends Values {
   lazy val cn = 100 * (1 - dloc / sloc)
   def values: Seq[Any] = Seq(cn, cc, sloc, dloc)
+  def +(b: StatEntry) =
+    StatEntry(this.cc + b.cc - 1, this.sloc + b.sloc, this.dloc + b.dloc)
 }
+
 object StatEntry {
   val zero = StatEntry(0, 0, 0)
-  def plus(a: StatEntry, b: StatEntry) = {
-    val dloc = a.dloc + b.dloc
-    val sloc = a.sloc + b.sloc
-    val cc = a.cc + b.cc - 1
-    StatEntry(cc, sloc, dloc)
-  }
 }
 
 class Trend(src: File, out: File, debug: Boolean) {
@@ -40,33 +28,46 @@ class Trend(src: File, out: File, debug: Boolean) {
   val relPath = git.relative(src.getAbsoluteFile.toPath)
   val txtGenerator = new TextGenerator(new File(out, "trend.txt"))
   val htmlGenerator = new HtmlGenerator(new File(out, "trend.html"))
-  val cache = scala.collection.mutable.Map[String, StatEntry]()
+  val cache = TrieMap[ObjectId, StatEntry]()
 
-  var blobCounter = 0
-  var treeCounter = 0
-
-  def metr(entity: (String, ObjectId)): StatEntry = {
-    val (name, id) = entity
-    def metr_(): StatEntry = {
-      val loader = git.repo.open(id)
-      loader.getType match {
-        case Constants.OBJ_BLOB =>
-          blobCounter += 1
-          Metric(loader.openStream).stat
-        case Constants.OBJ_TREE =>
-          treeCounter += 1
-          git.lsTree(id, Suffix.java).map(metr(_)).foldLeft(StatEntry.zero)(StatEntry.plus)
+  def metr(obj: Obj): StatEntry = {
+    def calc = {
+      obj match {
+        case BlobObj(_, id) => ??? // some things gone wrong
+        case TreeObj(_, id) =>
+          val values = git.lsTree(id, Suffix.java) map metr 
+          values.foldLeft(StatEntry.zero)(_ + _)
       }
     }
-    cache getOrElseUpdate (ObjectId.toString(id), metr_)
+    cache getOrElseUpdate (obj.id, calc)
+  }
+
+  def analyzeBlobs(obj: Obj) {
+    def gatherBlobs(obj: Obj): List[ObjectId] = {
+      if (cache.contains(obj.id))
+        List()
+      else obj match {
+        case BlobObj(_, id) => List(id)
+        case TreeObj(_, id) => git.lsTree(id, Suffix.java) flatMap gatherBlobs
+      }
+    }
+    val blobs = gatherBlobs(obj)
+    println(s".. found ${blobs.size} blobs")
+    blobs.foreach { id => cache update (id, Metric(git.repo.open(id).openStream).stat) }
+  }
+
+  /** util for performance measuring */
+  def time[A](a: => A) = {
+    val now = System.nanoTime
+    val result = a
+    val micros = (System.nanoTime - now) / 1000
+    println("%d microseconds".format(micros))
+    result
   }
 
   def metr(c: RevCommit): Try[StatEntry] = {
-    blobCounter = 0
-    treeCounter = 0
-    val t = Try(metr(git.revParse(c, relPath)))
-    println(s".. $blobCounter blobs, $treeCounter trees")
-    t
+    val obj = git.revParse(c, relPath)
+    Try(analyzeBlobs(obj)).map(_ => metr(obj))
   }
 
   def commitTime(c: RevCommit): Long = c.getCommitTime.toLong * 1000
