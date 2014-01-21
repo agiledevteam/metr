@@ -35,7 +35,7 @@ class HtmlGenerator(out: File) {
     }
 
     val printer = new PrintWriter(out)
-    Source.fromInputStream(getClass.getResourceAsStream("trend.html"))(io.Codec("UTF-8")).getLines foreach { line =>
+    Source.fromInputStream(getClass.getResourceAsStream("/html/trend.html"))(io.Codec("UTF-8")).getLines foreach { line =>
       printer.println(variablePattern replaceAllIn (line, substitute(_)))
     }
     printer.close

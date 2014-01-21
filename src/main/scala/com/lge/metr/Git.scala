@@ -8,6 +8,7 @@ import scala.collection.mutable.ListBuffer
 import scala.sys.process.fileToProcess
 
 import org.eclipse.jgit.lib.AnyObjectId
+import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevCommit
@@ -17,18 +18,17 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.treewalk.filter.PathFilter
 
-case class Suffix(buf: Array[Byte], len: Int)
-
 object Suffix {
-  val java = convert(".java")
-
-  def convert(suffix: String): Suffix = {
-    val bytes = suffix.getBytes
-    Suffix(bytes, bytes.length)
-  }
+  val java = ".java"
 }
 
-case class TreeEntry(name: String, id: ObjectId)
+trait Obj {
+  val name: String
+  val id: ObjectId
+}
+
+case class BlobObj(name: String, id: ObjectId) extends Obj
+case class TreeObj(name: String, id: ObjectId) extends Obj
 
 class Git(gitWorkTree: Path) {
   require(gitWorkTree.isAbsolute)
@@ -66,21 +66,34 @@ class Git(gitWorkTree: Path) {
     walk.toList
   }
 
-  def revParse(c: RevCommit, path: Option[String]): TreeEntry = {
+  def revParse(c: RevCommit, path: Option[String]): Obj = {
     val name = path.getOrElse("")
-    TreeEntry(name, repo.resolve(ObjectId.toString(c.getId)+":"+name))
+    val id = repo.resolve(ObjectId.toString(c.getId)+":"+name)
+    if (repo.open(id).getType == Constants.OBJ_BLOB)
+      BlobObj(name, id)
+    else
+      TreeObj(name, id)
   }
 
-  def lsTree(id: AnyObjectId, suffix: Suffix): List[TreeEntry] = {
-    val result = ListBuffer[TreeEntry]()
+  def lsTree(id: AnyObjectId): List[Obj] = {
+    def toObj(tree: TreeWalk): Obj =
+      if (tree.isSubtree) TreeObj(tree.getNameString, tree.getObjectId(0))
+      else BlobObj(tree.getNameString, tree.getObjectId(0))
+
+    val result = ListBuffer[Obj]()
     val tree = new TreeWalk(repo)
     tree.addTree(id)
     tree.setRecursive(false)
     while (tree.next()) {
-      if (tree.isSubtree || tree.isPathSuffix(suffix.buf, suffix.len))
-        result += TreeEntry(tree.getNameString, tree.getObjectId(0))
+      result += toObj(tree)
     }
     result.toList
+  }
+  def lsTree(id: AnyObjectId, suffix: String): List[Obj] = {
+    lsTree(id).filter {
+      case BlobObj(name, _) => name.endsWith(suffix)
+      case _ => true
+    }
   }
 }
 

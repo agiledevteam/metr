@@ -11,9 +11,9 @@ import java.nio.charset.StandardCharsets
 class JavaMetric extends MetricCounter {
   import JavaModel._
 
-  def process(input: Resource): Seq[MethodStatEntry] = {
+  def process(input: Resource): Map[String, StatEntry] = {
     val cu = parse(input.inputStream)
-    for (exe <- findExecutableIn(cu)) yield MethodStatEntry(sloc(exe).toInt, dloc(exe), cc(exe), exe.name)
+    Map() ++ findExecutableIn(cu).map(exe => exe.name -> StatEntry(cc(exe), sloc(exe).toInt, dloc(exe)))
   }
 
   def parse(in: InputStream): CompilationUnitContext = {
@@ -24,7 +24,7 @@ class JavaMetric extends MetricCounter {
     p.compilationUnit()
   }
 
-  def findExecutableIn(cu: CompilationUnitContext): Seq[Executable] = {
+  def findExecutableIn(cu: CompilationUnitContext): List[Executable] = {
     val listener = new TreeListener
     new ParseTreeWalker().walk(listener, cu)
     listener.executables.toList
