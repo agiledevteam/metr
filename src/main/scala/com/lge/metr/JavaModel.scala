@@ -2,6 +2,8 @@ package com.lge.metr
 
 object JavaModel {
 
+  case class CompUnit(exes: Seq[Executable])
+
   abstract class Executable {
     val name: String
     val body: BlockStmt
@@ -24,6 +26,6 @@ object JavaModel {
   case class SyncStmt(body: BlockStmt) extends Stmt
 
   case class TryStmt(body: BlockStmt, catchers: Seq[BlockStmt], finalizer: Option[BlockStmt]) extends Stmt
-  
+
   case class OtherStmt() extends Stmt
 }

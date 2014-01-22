@@ -16,7 +16,7 @@ trait MetricTest {
   }
 
   implicit def strToBlock(body: String) = {
-    val m = new JavaMetric
+    val m = new JavaProcessor
     val compUnit = m.parse(new StringResource(testSrc(body)).inputStream)
     m.findExecutableIn(compUnit)(0)
   }

@@ -19,8 +19,8 @@ class FileResource(f: File) extends Resource {
   def inputStream = new FileInputStream(f)
 }
 
-class Metric {
-  val java = new JavaMetric()
+class Metric extends MetricCounter {
+  val java = new JavaProcessor()
 
   val inputs = ListBuffer[Resource]()
 
@@ -41,7 +41,10 @@ class Metric {
   val entries = ListBuffer[StatEntry]()
 
   def load: Unit =
-    inputs.foreach(in => entries ++= java.process(in).values)
+    inputs.foreach { in =>
+      val cu = java.process(in.inputStream)
+      entries ++= cu.exes.map(exe => StatEntry(cc(exe), sloc(exe).toInt, dloc(exe)))
+    }
 
   def generate(reportFile: File) {
     new TextGenerator(reportFile).generate(entries)

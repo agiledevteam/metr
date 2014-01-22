@@ -171,7 +171,7 @@ class LocTest extends FunSuite with MetricCounter with MetricTest {
       .collect {
         case Some(weightP(w)) => w.toDouble
       }.toList
-    val m = new JavaMetric
+    val m = new JavaProcessor
     val cu = m.parse(new FileResource(new File(testFile)).inputStream)
     val e = m.findExecutableIn(cu).find(_.name.contains(testMethod)).get
     expectResult(weights.sum)(dloc(e))
