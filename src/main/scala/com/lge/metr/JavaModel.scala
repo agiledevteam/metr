@@ -6,12 +6,12 @@ object JavaModel {
 
   abstract class Executable {
     val name: String
-    val body: BlockStmt
+    val body: Stmt
   }
 
-  case class Method(name: String, body: BlockStmt) extends Executable
+  case class Method(name: String, body: Stmt) extends Executable
 
-  case class Ctor(name: String, body: BlockStmt) extends Executable
+  case class Ctor(name: String, body: Stmt) extends Executable
 
   class Stmt
 

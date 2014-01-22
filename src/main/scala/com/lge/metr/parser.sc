@@ -32,10 +32,10 @@ object parser {
                                                   //|   "
   val parser = Parboiled.createParser[org.parboiled.examples.java.JavaParser, java.lang.Object](classOf[org.parboiled.examples.java.JavaParser])
                                                   //> parser  : org.parboiled.examples.java.JavaParser = org.parboiled.examples.ja
-                                                  //| va.JavaParser$$parboiled@145b9eab
+                                                  //| va.JavaParser$$parboiled@18f048dc
   val result = ReportingParseRunner.run[Object](parser.CompilationUnit(), input)
                                                   //> result  : org.parboiled.support.ParsingResult[Object] = org.parboiled.suppor
-                                                  //| t.ParsingResult@40c90ea4
+                                                  //| t.ParsingResult@30b688e1
 
   type N = Node[Object]
   def find(a: N, path: String): Option[N] = Option(ParseTreeUtils.findNodeByPath(a, path))

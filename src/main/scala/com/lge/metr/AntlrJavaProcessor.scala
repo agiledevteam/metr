@@ -14,7 +14,7 @@ import com.lge.metr.JavaParser.CompilationUnitContext
 
 class AntlrJavaProcessor extends JavaProcessor{
 
-  def process(input: InputStream): CompUnit = {
+  override def process(input: InputStream): CompUnit = {
     val cu = parse(input)
     CompUnit(findExecutableIn(cu))
   }
