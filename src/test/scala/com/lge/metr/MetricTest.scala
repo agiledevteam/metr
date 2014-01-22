@@ -18,6 +18,6 @@ trait MetricTest {
 
   implicit def strToBlock(body: String) = {
     val m = new AntlrJavaProcessor
-    m.process(new ByteArrayInputStream(body.getBytes)).exes(0)
+    m.process(new ByteArrayInputStream(testSrc(body).getBytes)).exes(0)
   }
 }
