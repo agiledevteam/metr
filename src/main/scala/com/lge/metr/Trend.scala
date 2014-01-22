@@ -1,37 +1,25 @@
 package com.lge.metr
 
 import java.io.File
-import java.io.PrintWriter
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.language.implicitConversions
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import org.eclipse.jgit.revwalk.RevCommit
-import org.eclipse.jgit.revwalk.RevObject
-import org.eclipse.jgit.revwalk.RevTree
-import org.eclipse.jgit.treewalk.TreeWalk
-import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.lib.Constants
-import scala.util._
-import java.util.Date
 import java.util.Calendar
 
-case class StatEntry(cn: Double, cc: Int, sloc: Int, dloc: Double) extends Values {
+import scala.collection.concurrent.TrieMap
+import scala.language.implicitConversions
+import scala.util.Success
+import scala.util.Try
+
+import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.revwalk.RevCommit
+
+case class StatEntry(cc: Int, sloc: Int, dloc: Double) extends Values {
+  lazy val cn = 100 * (1 - dloc / sloc)
   def values: Seq[Any] = Seq(cn, cc, sloc, dloc)
+  def +(b: StatEntry) =
+    StatEntry(this.cc + b.cc - 1, this.sloc + b.sloc, this.dloc + b.dloc)
 }
+
 object StatEntry {
-  val zero = StatEntry(0, 0, 0, 0)
-  def plus(a: StatEntry, b: StatEntry) = {
-    val dloc = a.dloc + b.dloc
-    val sloc = a.sloc + b.sloc
-    val cc = a.cc + b.cc - 1
-    val cn = 100 * (1 - dloc / sloc)
-    StatEntry(cn, cc, sloc, dloc)
-  }
+  val zero = StatEntry(0, 0, 0)
 }
 
 class Trend(src: File, out: File, debug: Boolean) {
@@ -40,36 +28,40 @@ class Trend(src: File, out: File, debug: Boolean) {
   val relPath = git.relative(src.getAbsoluteFile.toPath)
   val txtGenerator = new TextGenerator(new File(out, "trend.txt"))
   val htmlGenerator = new HtmlGenerator(new File(out, "trend.html"))
-  val cache = scala.collection.mutable.Map[String, StatEntry]()
+  val cache = TrieMap[ObjectId, Option[StatEntry]]()
 
-  var counter = 0
-
-  def metr(entity: (String, ObjectId)): StatEntry = {
-    val (name, id) = entity
-    def metr_(): StatEntry = {
-      val loader = git.repo.open(id)
-      loader.getType match {
-        case Constants.OBJ_BLOB =>
-          counter += 1
-          Metric(loader.openStream).stat
-        case Constants.OBJ_TREE =>
-          git.lsTree(id, Suffix.java).map(metr(_)).foldLeft(StatEntry.zero)(StatEntry.plus)
+  def metr(obj: Obj): Option[StatEntry] = {
+    def calc: Option[StatEntry] = {
+      obj match {
+        case BlobObj(_, id) =>
+          Try(Metric(git.repo.open(id).openStream).stat).toOption
+        case TreeObj(_, id) =>
+          git.lsTree(id, Suffix.java).foldLeft(Option(StatEntry.zero)) {
+            (acc, obj) => for (a <- acc; s <- metr(obj)) yield a + s
+          }
       }
     }
-    cache getOrElseUpdate (ObjectId.toString(id), metr_)
+    cache getOrElseUpdate (obj.id, calc)
   }
 
-  def metr(c: RevCommit): Try[StatEntry] = {
-    counter = 0
-    val t = Try(metr(git.revParse(c, relPath)))
-    println(".. " + counter)
-    t
+  def gatherNewBlobs(obj: Obj): List[Obj] =
+    if (cache contains obj.id)
+      List()
+    else obj match {
+      case BlobObj(_, id) => List(obj)
+      case TreeObj(_, id) => git.lsTree(id, Suffix.java) flatMap gatherNewBlobs
+    }
+
+  def metr(c: RevCommit): Option[StatEntry] = {
+    val obj = git.revParse(c, relPath)
+    gatherNewBlobs(obj) foreach metr
+    metr(obj)
   }
 
   def commitTime(c: RevCommit): Long = c.getCommitTime.toLong * 1000
 
   def run(start: String) {
-    def toCommit(c: RevCommit): Commit = Commit(commitTime(c), c.getId.abbreviate(6).name)
+    def toCommit(c: RevCommit): Commit = Commit(commitTime(c), c.getId.abbreviate(7).name)
 
     print("retriving rev-list...(max one year) ")
     val commits = {
@@ -82,13 +74,13 @@ class Trend(src: File, out: File, debug: Boolean) {
 
     val trend = commits map { c =>
       val commit = toCommit(c)
-      println("processing... "+commit)
+      println("processing... " + commit)
       metr(c).map(toCommit(c) -> _)
     }
 
     println("generating...")
-    txtGenerator.generate(trend.collect { case Success(p) => p._1 ++ p._2 })
-    htmlGenerator.generate(trend.collect { case Success(p) => p })
+    txtGenerator.generate(trend.collect { case Some(p) => p._1 ++ p._2 })
+    htmlGenerator.generate(trend.collect { case Some(p) => p })
     println("done.")
   }
 

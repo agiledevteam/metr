@@ -26,6 +26,10 @@ libraryDependencies += "com.netflix.rxjava" % "rxjava-scala" % "0.15.1"
 
 libraryDependencies += "org.antlr" % "antlr4-runtime" % "4.1"
 
+libraryDependencies += "org.parboiled" % "parboiled-scala_2.10" % "1.1.5"
+
+libraryDependencies += "org.parboiled" % "parboiled-java" % "1.1.6"
+
 libraryDependencies += "org.eclipse.jgit" % "org.eclipse.jgit" % "3.2.0.201312181205-r"
 
 resolvers += Resolver.sonatypeRepo("public")

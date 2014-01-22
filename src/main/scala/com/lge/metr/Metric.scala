@@ -7,10 +7,6 @@ import java.io.InputStream
 
 import scala.collection.mutable.ListBuffer
 
-case class MethodStatEntry(sloc: Int, dloc: Double, cc: Int, name: String) extends Values {
-  def values: Seq[Any] = Seq(sloc, dloc, cc, name)
-}
-
 abstract class Resource {
   def inputStream: InputStream
 }
@@ -42,17 +38,16 @@ class Metric {
     }
   }
 
-  val entries = ListBuffer[MethodStatEntry]()
+  val entries = ListBuffer[StatEntry]()
 
   def load: Unit =
-    inputs.foreach(in => entries ++= java.process(in))
+    inputs.foreach(in => entries ++= java.process(in).values)
 
   def generate(reportFile: File) {
     new TextGenerator(reportFile).generate(entries)
   }
 
   def stat: StatEntry = StatEntry(
-    (1 - entries.map(_.dloc).sum / entries.map(_.sloc).sum) * 100,
     entries.map(_.cc - 1).sum + 1,
     entries.map(_.sloc).sum,
     entries.map(_.dloc).sum)
