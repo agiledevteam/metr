@@ -50,7 +50,7 @@ class TreeListener extends JavaBaseListener {
   implicit def asStmt(stmt: StatementContext): Stmt = stmt.getChild(0).getText match {
     case "if" =>
       IfStmt(stmt.statement(0), // then part
-        stmt.statement.lift(1).map(asStmt)) // else part is optional
+        stmt.statement().lift(1).map(asStmt)) // else part is optional
     case kw @ ("for" | "while" | "do") =>
       LoopStmt(kw, stmt.statement(0))
     case "try" =>
