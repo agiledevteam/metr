@@ -20,7 +20,7 @@ class FileResource(f: File) extends Resource {
 }
 
 class Metric extends MetricCounter {
-  val java = new JavaProcessor()
+  val java = new AntlrJavaProcessor()
 
   val inputs = ListBuffer[Resource]()
 

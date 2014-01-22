@@ -1,15 +1,13 @@
 package com.lge.metr
 
 import java.io.File
-
 import scala.collection.JavaConversions._
 import scala.io.Source
-
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
-
 import scala.language.implicitConversions
+import java.io.FileInputStream
 
 @RunWith(classOf[JUnitRunner])
 class LocTest extends FunSuite with MetricCounter with MetricTest {
@@ -171,9 +169,9 @@ class LocTest extends FunSuite with MetricCounter with MetricTest {
       .collect {
         case Some(weightP(w)) => w.toDouble
       }.toList
-    val m = new JavaProcessor
-    val cu = m.parse(new FileResource(new File(testFile)).inputStream)
-    val e = m.findExecutableIn(cu).find(_.name.contains(testMethod)).get
+    val m = new AntlrJavaProcessor
+    val cu = m.process(new FileInputStream(testFile))
+    val e = cu.exes.find(_.name.contains(testMethod)).get
     expectResult(weights.sum)(dloc(e))
     expectResult(weights.filter(_ != 0).size)(sloc(e))
   }

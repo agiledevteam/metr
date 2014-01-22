@@ -1,6 +1,7 @@
 package com.lge.metr
 
 import scala.language.implicitConversions
+import java.io.ByteArrayInputStream
 
 trait MetricTest {
   def testSrc(body: String): String = {
@@ -16,8 +17,7 @@ trait MetricTest {
   }
 
   implicit def strToBlock(body: String) = {
-    val m = new JavaProcessor
-    val compUnit = m.parse(new StringResource(testSrc(body)).inputStream)
-    m.findExecutableIn(compUnit)(0)
+    val m = new AntlrJavaProcessor
+    m.process(new ByteArrayInputStream(body.getBytes)).exes(0)
   }
 }
