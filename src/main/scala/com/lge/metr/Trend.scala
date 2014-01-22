@@ -28,46 +28,34 @@ class Trend(src: File, out: File, debug: Boolean) {
   val relPath = git.relative(src.getAbsoluteFile.toPath)
   val txtGenerator = new TextGenerator(new File(out, "trend.txt"))
   val htmlGenerator = new HtmlGenerator(new File(out, "trend.html"))
-  val cache = TrieMap[ObjectId, StatEntry]()
+  val cache = TrieMap[ObjectId, Option[StatEntry]]()
 
-  def metr(obj: Obj): StatEntry = {
-    def calc = {
+  def metr(obj: Obj): Option[StatEntry] = {
+    def calc: Option[StatEntry] = {
       obj match {
-        case BlobObj(_, id) => ??? // some things gone wrong
+        case BlobObj(_, id) =>
+          Try(Metric(git.repo.open(id).openStream).stat).toOption
         case TreeObj(_, id) =>
-          val values = git.lsTree(id, Suffix.java) map metr 
-          values.foldLeft(StatEntry.zero)(_ + _)
+          git.lsTree(id, Suffix.java).foldLeft(Option(StatEntry.zero)) {
+            (acc, obj) => for (a <- acc; s <- metr(obj)) yield a + s
+          }
       }
     }
     cache getOrElseUpdate (obj.id, calc)
   }
 
-  def analyzeBlobs(obj: Obj) {
-    def gatherBlobs(obj: Obj): List[ObjectId] = {
-      if (cache.contains(obj.id))
-        List()
-      else obj match {
-        case BlobObj(_, id) => List(id)
-        case TreeObj(_, id) => git.lsTree(id, Suffix.java) flatMap gatherBlobs
-      }
+  def gatherNewBlobs(obj: Obj): List[Obj] =
+    if (cache contains obj.id)
+      List()
+    else obj match {
+      case BlobObj(_, id) => List(obj)
+      case TreeObj(_, id) => git.lsTree(id, Suffix.java) flatMap gatherNewBlobs
     }
-    val blobs = gatherBlobs(obj)
-    println(s".. found ${blobs.size} blobs")
-    blobs.foreach { id => cache update (id, Metric(git.repo.open(id).openStream).stat) }
-  }
 
-  /** util for performance measuring */
-  def time[A](a: => A) = {
-    val now = System.nanoTime
-    val result = a
-    val micros = (System.nanoTime - now) / 1000
-    println("%d microseconds".format(micros))
-    result
-  }
-
-  def metr(c: RevCommit): Try[StatEntry] = {
+  def metr(c: RevCommit): Option[StatEntry] = {
     val obj = git.revParse(c, relPath)
-    Try(analyzeBlobs(obj)).map(_ => metr(obj))
+    gatherNewBlobs(obj) foreach metr
+    metr(obj)
   }
 
   def commitTime(c: RevCommit): Long = c.getCommitTime.toLong * 1000
@@ -86,13 +74,13 @@ class Trend(src: File, out: File, debug: Boolean) {
 
     val trend = commits map { c =>
       val commit = toCommit(c)
-      println("processing... "+commit)
+      println("processing... " + commit)
       metr(c).map(toCommit(c) -> _)
     }
 
     println("generating...")
-    txtGenerator.generate(trend.collect { case Success(p) => p._1 ++ p._2 })
-    htmlGenerator.generate(trend.collect { case Success(p) => p })
+    txtGenerator.generate(trend.collect { case Some(p) => p._1 ++ p._2 })
+    htmlGenerator.generate(trend.collect { case Some(p) => p })
     println("done.")
   }
 
