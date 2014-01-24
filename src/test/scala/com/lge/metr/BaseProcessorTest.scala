@@ -1,18 +1,52 @@
 package com.lge.metr
 
 import java.io.File
-
 import scala.collection.JavaConversions._
 import scala.io.Source
-
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
-
 import scala.language.implicitConversions
+import java.io.FileInputStream
+import java.io.ByteArrayInputStream
 
-@RunWith(classOf[JUnitRunner])
-class LocTest extends FunSuite with MetricCounter with MetricTest {
+trait ProcessorTest extends FunSuite with MetricCounter {
+  val processor: JavaProcessor
+
+  implicit def strToBlock(body: String) = {
+    processor.process(new ByteArrayInputStream(testSrc(body).getBytes)).exes(0)
+  }
+
+  def testSrc(body: String): String = {
+    val header =
+      """class Cc {
+        | public void cc() {
+        """.stripMargin
+    val footer =
+      """
+        | }
+        |}""".stripMargin
+    header + body + footer
+  }
+
+  test("straight forward  cc") {
+    val body = """
+      int a;
+      return;
+      """
+    expectResult(1)(cc(body))
+  }
+
+  test("if-else cc") {
+    val body = """
+      if (true) {
+        int a = 0;
+        a++;
+      }
+      return;
+      """
+    expectResult(2)(cc(body))
+  }
 
   test("straight forward plain loc") {
     val body = """
@@ -171,9 +205,8 @@ class LocTest extends FunSuite with MetricCounter with MetricTest {
       .collect {
         case Some(weightP(w)) => w.toDouble
       }.toList
-    val m = new JavaMetric
-    val cu = m.parse(new FileResource(new File(testFile)).inputStream)
-    val e = m.findExecutableIn(cu).find(_.name.contains(testMethod)).get
+    val cu = processor.process(new FileInputStream(testFile))
+    val e = cu.exes.find(_.name.contains(testMethod)).get
     expectResult(weights.sum)(dloc(e))
     expectResult(weights.filter(_ != 0).size)(sloc(e))
   }
@@ -182,4 +215,5 @@ class LocTest extends FunSuite with MetricCounter with MetricTest {
     checkFile("src/test/resources/LittleNested.java", "nestedCases")
     checkFile("src/test/resources/AllGrammar.java", "allStatements")
   }
+
 }

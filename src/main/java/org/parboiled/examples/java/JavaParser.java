@@ -123,10 +123,10 @@ public class JavaParser extends BaseParser<Object> {
     Rule MemberDecl() {
         return FirstOf(
                 Sequence(TypeParameters(), GenericMethodOrConstructorRest()),
-                Sequence(Type(), Identifier(), MethodDeclaratorRest()),
+                Sequence(Type().suppressNode(), Identifier().label("id"), MethodDeclaratorRest()).label("method"),
                 Sequence(Type(), VariableDeclarators(), SEMI),
-                Sequence(VOID, Identifier(), VoidMethodDeclaratorRest()),
-                Sequence(Identifier(), ConstructorDeclaratorRest()),
+                Sequence(VOID, Identifier().label("id"), VoidMethodDeclaratorRest()).label("method"),
+                Sequence(Identifier().label("id"), ConstructorDeclaratorRest()).label("method"),
                 InterfaceDeclaration(),
                 ClassDeclaration(),
                 EnumDeclaration(),
@@ -136,32 +136,40 @@ public class JavaParser extends BaseParser<Object> {
 
     Rule GenericMethodOrConstructorRest() {
         return FirstOf(
-                Sequence(FirstOf(Type(), VOID), Identifier(), MethodDeclaratorRest()),
-                Sequence(Identifier(), ConstructorDeclaratorRest())
+                Sequence(FirstOf(Type(), VOID), Identifier().label("id"), MethodDeclaratorRest()).label("method"),
+                Sequence(Identifier().label("id"), ConstructorDeclaratorRest()).label("method")
         );
     }
 
+    @DontLabel
     Rule MethodDeclaratorRest() {
         return Sequence(
-                FormalParameters(),
-                ZeroOrMore(Dim()),
-                Optional(THROWS, ClassTypeList()),
-                FirstOf(MethodBody(), SEMI)
-        );
+                FormalParameters().suppressNode(),
+                ZeroOrMore(Dim()).suppressNode(),
+                Optional(THROWS, ClassTypeList()).suppressNode(),
+                FirstOf(MethodBody(), SEMI).skipNode()
+        ).skipNode();
     }
 
+    @DontLabel
     Rule VoidMethodDeclaratorRest() {
         return Sequence(
-                FormalParameters(),
-                Optional(THROWS, ClassTypeList()),
-                FirstOf(MethodBody(), SEMI)
-        );
+                FormalParameters().suppressNode(),
+                Optional(THROWS, ClassTypeList()).suppressNode(),
+                FirstOf(MethodBody(), SEMI).skipNode()
+        ).skipNode();
     }
 
+    @DontLabel
     Rule ConstructorDeclaratorRest() {
-        return Sequence(FormalParameters(), Optional(THROWS, ClassTypeList()), MethodBody());
+        return Sequence(
+            FormalParameters().suppressNode(), 
+            Optional(THROWS, ClassTypeList()).suppressNode(), 
+            MethodBody()
+            ).skipNode();
     }
 
+    @DontLabel
     Rule MethodBody() {
         return Block();
     }
@@ -287,6 +295,7 @@ public class JavaParser extends BaseParser<Object> {
     //  Variable Declarations
     //-------------------------------------------------------------------------    
 
+    @SuppressSubnodes
     Rule LocalVariableDeclarationStatement() {
         return Sequence(ZeroOrMore(FirstOf(FINAL, Annotation())), Type(), VariableDeclarators(), SEMI);
     }
@@ -330,62 +339,69 @@ public class JavaParser extends BaseParser<Object> {
     //  Statements
     //-------------------------------------------------------------------------    
 
+    @DontLabel
     Rule Block() {
-        return Sequence(LWING, BlockStatements(), RWING);
+        return Sequence(LWING, BlockStatements(), RWING).label("block");
     }
 
     Rule BlockStatements() {
-        return ZeroOrMore(BlockStatement());
+        return ZeroOrMore(BlockStatement()).skipNode();
     }
 
     Rule BlockStatement() {
         return FirstOf(
-                LocalVariableDeclarationStatement(),
+                LocalVariableDeclarationStatement().label("decl"),
                 Sequence(ZeroOrMore(Modifier()), FirstOf(ClassDeclaration(), EnumDeclaration())),
                 Statement()
-        );
+        ).skipNode();
     }
 
     Rule Statement() {
         return FirstOf(
                 Block(),
-                Sequence(ASSERT, Expression(), Optional(COLON, Expression()), SEMI),
-                Sequence(IF, ParExpression(), Statement(), Optional(ELSE, Statement())),
-                Sequence(FOR, LPAR, Optional(ForInit()), SEMI, Optional(Expression()), SEMI, Optional(ForUpdate()),
-                        RPAR, Statement()),
-                Sequence(FOR, LPAR, FormalParameter(), COLON, Expression(), RPAR, Statement()),
-                Sequence(WHILE, ParExpression(), Statement()),
-                Sequence(DO, Statement(), WHILE, ParExpression(), SEMI),
+                Sequence(ASSERT, Expression(), Optional(COLON, Expression()), SEMI).label("assert"),
+                Sequence(IF, ParExpression(), Statement(), Optional(Sequence(ELSE, Statement()).skipNode()).skipNode()).label("if"),
+                Sequence(FOR, LPAR, Optional(ForInit()).suppressNode(), SEMI, Optional(Expression()).suppressNode(), SEMI, Optional(ForUpdate()).suppressNode(),
+                        RPAR, Statement()).label("for"),
+                Sequence(FOR, LPAR, FormalParameter().suppressNode(), COLON, Expression().suppressNode(), RPAR, Statement()).label("for-each"),
+                Sequence(WHILE, ParExpression().suppressNode(), Statement()).label("while"),
+                Sequence(DO, Statement(), WHILE, ParExpression(), SEMI).label("do"),
                 Sequence(TRY, Block(),
-                        FirstOf(Sequence(OneOrMore(Catch_()), Optional(Finally_())), Finally_())),
-                Sequence(SWITCH, ParExpression(), LWING, SwitchBlockStatementGroups(), RWING),
-                Sequence(SYNCHRONIZED, ParExpression(), Block()),
-                Sequence(RETURN, Optional(Expression()), SEMI),
-                Sequence(THROW, Expression(), SEMI),
-                Sequence(BREAK, Optional(Identifier()), SEMI),
-                Sequence(CONTINUE, Optional(Identifier()), SEMI),
-                Sequence(Sequence(Identifier(), COLON), Statement()),
-                Sequence(StatementExpression(), SEMI),
-                SEMI
-        );
+                        FirstOf(Sequence(OneOrMore(Catch_()).skipNode(), Optional(Finally_()).skipNode()).skipNode(), Finally_()).skipNode()).label("try"),
+                Sequence(SWITCH, ParExpression(), LWING, SwitchBlockStatementGroups(), RWING).label("switch"),
+                Sequence(SYNCHRONIZED, ParExpression(), Block()).label("synchronized"),
+                Sequence(RETURN, Optional(Expression()), SEMI).label("return"),
+                Sequence(THROW, Expression(), SEMI).label("throw"),
+                Sequence(BREAK, Optional(Identifier()), SEMI).label("break"),
+                Sequence(CONTINUE, Optional(Identifier()), SEMI).label("continue"),
+                Sequence(Sequence(Identifier(), COLON).suppressNode(), Statement()).skipNode(),
+                Sequence(StatementExpression(), SEMI).label("expression"),
+                //SEMI
+                Sequence(";", Spacing()).label(";").suppressSubnodes()
+        ).skipNode();
     }
 
+    @Label("catch")
     Rule Catch_() {
-        return Sequence(CATCH, LPAR, FormalParameter(), RPAR, Block());
+        return Sequence(CATCH, LPAR, FormalParameter().suppressNode(), RPAR, Block());
     }
 
+    @Label("finally")
     Rule Finally_() {
         return Sequence(FINALLY, Block());
     }
 
     Rule SwitchBlockStatementGroups() {
-        return ZeroOrMore(SwitchBlockStatementGroup());
+        return ZeroOrMore(SwitchBlockStatementGroup()).skipNode();
     }
 
+    @Label("case-block")
     Rule SwitchBlockStatementGroup() {
         return Sequence(SwitchLabel(), BlockStatements());
     }
 
+    @Label("case")
+    @SuppressSubnodes
     Rule SwitchLabel() {
         return FirstOf(
                 Sequence(CASE, ConstantExpression(), COLON),
@@ -416,6 +432,7 @@ public class JavaParser extends BaseParser<Object> {
     // The following is more generous than the definition in section 14.8,
     // which allows only specific forms of Expression.
 
+    @DontLabel
     Rule StatementExpression() {
         return Expression();
     }
@@ -431,6 +448,7 @@ public class JavaParser extends BaseParser<Object> {
     // The following is obtained by allowing ANY ConditionalExpression
     // as LeftHandSide, which results in accepting statements like 5 = a.
 
+    @DontLabel
     Rule Expression() {
         return Sequence(
                 ConditionalExpression(),
@@ -676,6 +694,8 @@ public class JavaParser extends BaseParser<Object> {
         return FirstOf(ArrayInitializer(), Expression());
     }
 
+    @Label("par")
+    @SuppressSubnodes
     Rule ParExpression() {
         return Sequence(LPAR, Expression(), RPAR);
     }
