@@ -2,14 +2,18 @@ package com.lge.metr
 
 import java.io.File
 import java.util.Calendar
-
 import scala.collection.concurrent.TrieMap
 import scala.language.implicitConversions
 import scala.util.Success
 import scala.util.Try
-
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.revwalk.RevCommit
+import java.io.InputStream
+import antlr.ANTLRParser
+import scala.concurrent.Future
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class StatEntry(cc: Int, sloc: Int, dloc: Double) extends Values {
   lazy val cn = 100 * (1 - dloc / sloc)
@@ -22,19 +26,26 @@ object StatEntry {
   val zero = StatEntry(0, 0, 0)
 }
 
-class Trend(src: File, out: File, debug: Boolean) {
+class Trend(src: File, out: File, debug: Boolean) extends MetricCounter {
   require(out.exists || out.mkdirs)
   val git = Git(src)
   val relPath = git.relative(src.getAbsoluteFile.toPath)
   val txtGenerator = new TextGenerator(new File(out, "trend.txt"))
   val htmlGenerator = new HtmlGenerator(new File(out, "trend.html"))
   val cache = TrieMap[ObjectId, Option[StatEntry]]()
+  val parser = new ParboiledJavaProcessor
+
+  def metr(exe: JavaModel.Executable): StatEntry =
+    StatEntry(cc(exe), sloc(exe).toInt, dloc(exe))
+
+  def metr(input: InputStream): StatEntry =
+    parser.process(input).exes.map(metr).foldLeft(StatEntry.zero)(_ + _)
 
   def metr(obj: Obj): Option[StatEntry] = {
     def calc: Option[StatEntry] = {
       obj match {
         case BlobObj(_, id) =>
-          Try(Metric(git.repo.open(id).openStream).stat).toOption
+          Try(metr(git.repo.open(id).openStream)).toOption
         case TreeObj(_, id) =>
           git.lsTree(id, Suffix.java).foldLeft(Option(StatEntry.zero)) {
             (acc, obj) => for (a <- acc; s <- metr(obj)) yield a + s
@@ -54,7 +65,7 @@ class Trend(src: File, out: File, debug: Boolean) {
 
   def metr(c: RevCommit): Option[StatEntry] = {
     val obj = git.revParse(c, relPath)
-    gatherNewBlobs(obj) foreach metr
+    //gatherNewBlobs(obj) map metr
     metr(obj)
   }
 
@@ -68,13 +79,15 @@ class Trend(src: File, out: File, debug: Boolean) {
       val oneYearBefore = { val c = Calendar.getInstance; c.add(Calendar.YEAR, -1); c.getTimeInMillis }
       val orig = git.revList(start, relPath).
         filter(c => commitTime(c) > oneYearBefore)
-      if (debug) orig.take(5) else orig
+      if (debug)
+        orig.reverse.take(5) 
+      else orig
     }
     println(commits.size)
 
     val trend = commits map { c =>
       val commit = toCommit(c)
-      println("processing... " + commit)
+      println("processing... "+commit)
       metr(c).map(toCommit(c) -> _)
     }
 

@@ -12,24 +12,28 @@ import com.lge.metr.JavaModel.CompUnit
 import com.lge.metr.JavaModel.Executable
 import com.lge.metr.JavaParser.CompilationUnitContext
 
-class AntlrJavaProcessor extends JavaProcessor{
+class AntlrJavaProcessor extends JavaProcessor {
+  override def process(input: String): CompUnit = {
+    val stream = new ANTLRInputStream(input)
+    process(stream)
+  }
 
   override def process(input: InputStream): CompUnit = {
-    val cu = parse(input)
+    val stream = new ANTLRInputStream(input)
+    process(stream)
+  }
+
+  def process(stream: ANTLRInputStream): CompUnit = {
+    val source = new JavaLexer(stream)
+    val tokens = new CommonTokenStream(source)
+    val p = new JavaParser(tokens)
+    val cu = p.compilationUnit()
     CompUnit(findExecutableIn(cu))
   }
 
-  def parse(input: InputStream): CompilationUnitContext = {
-    val input2 = new ANTLRInputStream(new InputStreamReader(input, StandardCharsets.UTF_8))
-    val source = new JavaLexer(input2)
-    val tokens = new CommonTokenStream(source)
-    val p = new JavaParser(tokens)
-    p.compilationUnit()
-  }
-
-  def findExecutableIn(cu: CompilationUnitContext): List[Executable] = {
+  def findExecutableIn(cu: CompilationUnitContext): Seq[Executable] = {
     val listener = new TreeListener
     new ParseTreeWalker().walk(listener, cu)
-    listener.executables.toList
+    listener.executables
   }
 }

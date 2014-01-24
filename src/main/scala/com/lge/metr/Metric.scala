@@ -31,11 +31,7 @@ class Metric extends MetricCounter {
     addSource(new StringResource(src))
 
   def addSource(f: File) {
-    if (f.isDirectory) {
-      f.listFiles.foreach(addSource(_))
-    } else if (f.getPath().endsWith(".java")) {
-      inputs += new FileResource(f)
-    }
+    inputs ++= FileUtil.gatherFiles(f, ".java").map(new FileResource(_))
   }
 
   val entries = ListBuffer[StatEntry]()
