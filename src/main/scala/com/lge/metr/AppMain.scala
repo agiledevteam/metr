@@ -1,11 +1,12 @@
 package com.lge.metr
 
 import java.io.File
-import scala.Array.canBuildFrom
+import scala.slick.driver.H2Driver.simple._
 
 case class Config(src: File, out: File, trend: Boolean, commit: String, dest: File, debug: Boolean = false)
 
 object AppMain extends App {
+
   val parser = new scopt.OptionParser[Config]("metr") {
     head("metr", "1.0")
 
@@ -30,13 +31,15 @@ object AppMain extends App {
     checkConfig { c =>
       if (c.trend && c.dest.exists && !c.dest.isDirectory)
         failure(s"${c.dest} should be a directory.")
+      else if (!c.trend && c.src == null)
+        failure("<src> should be specified. or use -t(--trend)")
       else success
     }
   }
   println("pwd:"+new File("").getAbsolutePath)
   parser.parse(args, Config(null, new File("report.txt"), false, "HEAD", new File("output"))) map { config =>
     if (config.trend) {
-      new Trend(config.src, config.dest, config.debug).run(config.commit)
+      new Trend(config).run(config.commit)
     } else {
       val metr = new Metric
       metr.addSource(config.src)

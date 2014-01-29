@@ -2,10 +2,11 @@ package com.lge.metr
 
 import java.text.SimpleDateFormat
 
-case class Commit(timestamp: Long, commitId: String) extends Values {
+case class Commit(id: String, author: String, timestamp: Long) extends Values {
   private val df = new SimpleDateFormat()
   override def toString: String = {
-    s"Commit(${df.format(timestamp)}, $commitId)" 
+    s"Commit(${id.take(7)}, $author, ${df.format(timestamp)})" 
   }
-  def values: Seq[Any] = Seq(timestamp, commitId)
+  def values =
+    Seq(timestamp, id)
 }

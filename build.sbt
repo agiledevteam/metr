@@ -16,6 +16,12 @@ antlr4GenListener in Antlr4 := true // default: true
 
 antlr4GenVisitor in Antlr4 := true // default: false
 
+libraryDependencies ++= List(
+    "com.typesafe.slick" %% "slick" % "2.0.0",
+    "org.slf4j" % "slf4j-nop" % "1.6.4",
+    "com.h2database" % "h2" % "1.3.170"
+)
+
 libraryDependencies += "org.scalatest" %% "scalatest" % "1.9.1" % "test"
 
 libraryDependencies += "junit" % "junit" % "4.10" % "test"
