@@ -60,4 +60,5 @@ notes
 TODOs
 ====
 
-* cyclomatic complexity: method/class/package/project
+* add C++/C support
+
