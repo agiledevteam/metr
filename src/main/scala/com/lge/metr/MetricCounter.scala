@@ -6,7 +6,7 @@ trait MetricCounter {
   import JavaModel._
 
   def cc(exe: Executable): Int = cc(exe.body) + 1
-  def sloc(stmt: Executable): Double = loc(stmt.body)(1)
+  def sloc(stmt: Executable): Int = loc(stmt.body)(1).toInt
   def dloc(stmt: Executable): Double = loc(stmt.body)(0.5)
 
   private def cc(stmt: Stmt): Int = stmt match {
