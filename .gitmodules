@@ -1,9 +1,0 @@
-[submodule "samples/github-android"]
-	path = samples/github-android
-	url = https://github.com/github/android
-[submodule "samples/google-iosched"]
-	path = samples/google-iosched
-	url = https://code.google.com/p/iosched/
-[submodule "samples/aosp-deskclock"]
-	path = samples/aosp-deskclock
-	url = https://android.googlesource.com/platform/packages/apps/DeskClock
