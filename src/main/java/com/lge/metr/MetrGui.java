@@ -296,8 +296,7 @@ public class MetrGui extends JFrame {
     };
 
     public MetrGui() {
-        super("TopLevelTransferHandlerDemo");
-        //setJMenuBar(createDummyMenuBar());
+        super("Metr GUI");
         getContentPane().add(createDummyToolBar(), BorderLayout.NORTH);
 
         JScrollPane scrollPane = new JScrollPane(table);
@@ -329,8 +328,6 @@ public class MetrGui extends JFrame {
     public static void main(final String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                // Turn off metal's use of bold fonts
-                UIManager.put("swing.boldMetal", Boolean.FALSE);
                 createAndShowGUI(args);
             }
         });
