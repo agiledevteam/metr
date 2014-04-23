@@ -23,24 +23,50 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
 import javax.swing.JToolBar;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
 import javax.swing.UIManager;
 import javax.swing.table.AbstractTableModel;
+import java.text.NumberFormat;
+
+class CodeFatRenderer extends DefaultTableCellRenderer {
+    NumberFormat formatter;
+    public CodeFatRenderer() {
+        super();
+        formatter = NumberFormat.getInstance();
+        formatter.setMaximumFractionDigits(2);
+        formatter.setMinimumFractionDigits(2);
+        setHorizontalAlignment(RIGHT);
+    }
+
+    public void setValue(Object value) {
+        setText((value == null) ? "" : formatter.format((double)value) + "%");
+    }
+}
 
 public class MetrGui extends JFrame {
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
     MyTableModel model = new MyTableModel();
-    JTable table = new JTable(model);
-
+    CodeFatRenderer codeFatRenderer = new CodeFatRenderer();
+    JTable table = new JTable(model) {
+      @Override
+      public TableCellRenderer getCellRenderer(int row, int column) {
+        if (column == 4) {
+          return codeFatRenderer;
+        }
+        return super.getCellRenderer(row, column);
+      }
+    };
     class MyTableModel extends AbstractTableModel {
         /**
-         * 
+         *
          */
         private static final long serialVersionUID = 1L;
         private String[] columnNames = { "Location", "Filename", "SLOC",
@@ -121,7 +147,7 @@ public class MetrGui extends JFrame {
 
     private TransferHandler handler = new TransferHandler() {
         /**
-         * 
+         *
          */
         private static final long serialVersionUID = 1L;
 
