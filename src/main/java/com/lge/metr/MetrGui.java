@@ -15,13 +15,19 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
+import javax.swing.*;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
@@ -56,13 +62,94 @@ public class MetrGui extends JFrame {
     MyTableModel model = new MyTableModel();
     CodeFatRenderer codeFatRenderer = new CodeFatRenderer();
     JTable table = new JTable(model) {
-      @Override
-      public TableCellRenderer getCellRenderer(int row, int column) {
-        if (column == 4) {
-          return codeFatRenderer;
+        @Override
+        public TableCellRenderer getCellRenderer(int row, int column) {
+          if (column == 4) {
+            return codeFatRenderer;
+          }
+          return super.getCellRenderer(row, column);
         }
-        return super.getCellRenderer(row, column);
+    };
+    {
+      table.setAutoCreateRowSorter(true);
+      table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+      table.getSelectionModel().addListSelectionListener(new RowListener());
+    }
+    private class RowListener implements ListSelectionListener {
+        public void valueChanged(ListSelectionEvent event) {
+            if (event.getValueIsAdjusting()) {
+                return;
+            }
+            setSelection();
+        }
+    }
+    private void setSelection() {
+      int[] selection = table.getSelectedRows();
+      if (selection.length != 1) {
+        model2.setDetail(null);
+      } else {
+        int selected = table.convertRowIndexToModel(selection[0]);
+        Stat stat = model.getDetail(selected);
+        model2.setDetail(stat);
       }
+    }
+    DetailModel model2 = new DetailModel();
+    JTable table2 = new JTable(model2) {
+        @Override
+        public TableCellRenderer getCellRenderer(int row, int column) {
+          if (column == 4) {
+            return codeFatRenderer;
+          }
+          return super.getCellRenderer(row, column);
+        }
+    };
+    {
+        table2.setAutoCreateRowSorter(true);
+        table2.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+    }
+    class DetailModel extends AbstractTableModel {
+        private static final long serialVersionUID = 1L;
+        private String[] columnNames = { "Type", "Method", "SLOC",
+                "FLOC", "Code Fat" };
+        private ExeStat[] exes = new ExeStat[0];
+
+        public Class<?> getColumnClass(int column) {
+            return getValueAt(0, column).getClass();
+        }
+
+        public int getColumnCount() {
+            return columnNames.length;
+        }
+
+        public int getRowCount() {
+            return exes.length;
+        }
+
+        public String getColumnName(int col) {
+            return columnNames[col];
+        }
+
+        public Object getValueAt(int row, int col) {
+            ExeStat stat = exes[row];
+            if (col == 0)
+                return stat.typeName();
+            else if (col == 1)
+                return stat.methodName();
+            else if (col == 2)
+                return stat.sloc();
+            else if (col == 3)
+                return stat.floc();
+            else
+                return stat.codefat();
+        }
+        public void setDetail(Stat stat) {
+          if (stat == null) {
+            exes = new ExeStat[0];
+          } else {
+            exes = stat.exes();
+          }
+          fireTableDataChanged();
+        }
     };
     class MyTableModel extends AbstractTableModel {
         /**
@@ -73,7 +160,11 @@ public class MetrGui extends JFrame {
                 "FLOC", "Code Fat" };
         private List<String> files = new ArrayList<>();
         private HashMap<String, Stat> stats = new HashMap<>();
-        private Stat defaultStat = new Stat(0, 0);
+        private Stat defaultStat = new Stat(new ExeStat[0]);
+
+        public Class<?> getColumnClass(int column) {
+            return getValueAt(0, column).getClass();
+        }
 
         public int getColumnCount() {
             return columnNames.length;
@@ -123,7 +214,27 @@ public class MetrGui extends JFrame {
             if (index >= 0) {
                 stats.put(absolutePath, result);
                 fireTableRowsUpdated(index, index);
+
+                int[] selection = table.getSelectedRows();
+                if (selection.length == 1 && selection[0] == index) {
+                   setSelection();
+                }
             }
+        }
+
+        public Stat getDetail(int row) {
+            return stats.get(files.get(row));
+        }
+
+        public void clear() {
+            stats.clear();
+            files.clear();
+            fireTableDataChanged();
+        }
+
+        public void refresh() {
+          for (String filepath: files)
+            asyncMetr(new File(filepath));
         }
     }
 
@@ -186,22 +297,17 @@ public class MetrGui extends JFrame {
 
     public MetrGui() {
         super("TopLevelTransferHandlerDemo");
-        setJMenuBar(createDummyMenuBar());
+        //setJMenuBar(createDummyMenuBar());
         getContentPane().add(createDummyToolBar(), BorderLayout.NORTH);
+
         JScrollPane scrollPane = new JScrollPane(table);
-        table.setFillsViewportHeight(true);
-        getContentPane().add(scrollPane);
+        JScrollPane scrollPane2 = new JScrollPane(table2);
 
-        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
+                                   scrollPane, scrollPane2);
+        splitPane.setDividerLocation(400);
 
-        // list.addListSelectionListener(new ListSelectionListener() {
-        // public void valueChanged(ListSelectionEvent e) {
-        // if (e.getValueIsAdjusting()) {
-        // return;
-        // }
-        //
-        // }
-        // });
+        getContentPane().add(splitPane);
 
         setTransferHandler(handler);
     }
@@ -233,20 +339,22 @@ public class MetrGui extends JFrame {
     private JToolBar createDummyToolBar() {
         JToolBar tb = new JToolBar();
         JButton b;
-        b = new JButton("New");
+        b = new JButton("Clear");
         b.setRequestFocusEnabled(false);
+        b.addActionListener(new ActionListener() {
+          public void actionPerformed(ActionEvent e) {
+            model.clear();
+            model2.setDetail(null);
+          }
+        });
         tb.add(b);
-        b = new JButton("Open");
+        b = new JButton("Refresh");
         b.setRequestFocusEnabled(false);
-        tb.add(b);
-        b = new JButton("Save");
-        b.setRequestFocusEnabled(false);
-        tb.add(b);
-        b = new JButton("Print");
-        b.setRequestFocusEnabled(false);
-        tb.add(b);
-        b = new JButton("Preview");
-        b.setRequestFocusEnabled(false);
+        b.addActionListener(new ActionListener() {
+          public void actionPerformed(ActionEvent e) {
+            model.refresh();
+          }
+        });
         tb.add(b);
         tb.setFloatable(false);
         return tb;
