@@ -38,6 +38,6 @@ resolvers += Resolver.sonatypeRepo("public")
 
 scalacOptions ++= Seq("-feature", "-deprecation")
 
-mainClass in assembly := Some("com.lge.metr.AppMain")
+mainClass in assembly := Some("com.lge.metr.MetrGui")
 
 EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Managed
