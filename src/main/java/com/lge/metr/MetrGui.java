@@ -4,53 +4,57 @@ import java.awt.BorderLayout;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import javax.swing.*;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+
+import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableCellRenderer;
 import javax.swing.JToolBar;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
 import javax.swing.UIManager;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
-import java.text.NumberFormat;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
 
 class CodeFatRenderer extends DefaultTableCellRenderer {
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
     NumberFormat formatter;
-    public CodeFatRenderer() {
+
+    public CodeFatRenderer(NumberFormat formatter) {
         super();
-        formatter = NumberFormat.getInstance();
-        formatter.setMaximumFractionDigits(2);
-        formatter.setMinimumFractionDigits(2);
+        this.formatter = formatter;
         setHorizontalAlignment(RIGHT);
     }
 
     public void setValue(Object value) {
-        setText((value == null) ? "" : formatter.format((double)value) + "%");
+        setText((value == null) ? "" : formatter.format((double) value) + "%");
     }
 }
 
@@ -58,23 +62,39 @@ public class MetrGui extends JFrame {
     /**
      *
      */
+    NumberFormat formatter;
+    {
+        formatter = NumberFormat.getInstance();
+        formatter.setMaximumFractionDigits(2);
+        formatter.setMinimumFractionDigits(2);
+    }
     private static final long serialVersionUID = 1L;
+    JLabel status = new JLabel();
     MyTableModel model = new MyTableModel();
-    CodeFatRenderer codeFatRenderer = new CodeFatRenderer();
+//    {
+//        model.addTableModelListener(new TableModelListener() {
+//            @Override
+//            public void tableChanged(TableModelEvent arg0) {
+//                updateStatus();
+//            }
+//        });
+//    }
+    CodeFatRenderer codeFatRenderer = new CodeFatRenderer(formatter);
     JTable table = new JTable(model) {
         @Override
         public TableCellRenderer getCellRenderer(int row, int column) {
-          if (column == 4) {
-            return codeFatRenderer;
-          }
-          return super.getCellRenderer(row, column);
+            if (column == 4) {
+                return codeFatRenderer;
+            }
+            return super.getCellRenderer(row, column);
         }
     };
     {
-      table.setAutoCreateRowSorter(true);
-      table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-      table.getSelectionModel().addListSelectionListener(new RowListener());
+        table.setAutoCreateRowSorter(true);
+        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        table.getSelectionModel().addListSelectionListener(new RowListener());
     }
+
     private class RowListener implements ListSelectionListener {
         public void valueChanged(ListSelectionEvent event) {
             if (event.getValueIsAdjusting()) {
@@ -83,34 +103,48 @@ public class MetrGui extends JFrame {
             setSelection();
         }
     }
+
     private void setSelection() {
-      int[] selection = table.getSelectedRows();
-      if (selection.length != 1) {
-        model2.setDetail(null);
-      } else {
-        int selected = table.convertRowIndexToModel(selection[0]);
-        Stat stat = model.getDetail(selected);
-        model2.setDetail(stat);
-      }
+        int[] selection = table.getSelectedRows();
+        if (selection.length != 1) {
+            model2.setDetail(null);
+        } else {
+            int selected = table.convertRowIndexToModel(selection[0]);
+            Stat stat = model.getDetail(selected);
+            model2.setDetail(stat);
+        }
     }
+
+    protected void updateStatus() {
+        int count = model.getRowCount();
+        int sloc = model.sloc();
+        double floc = model.floc();
+        double codefat = (sloc == 0) ? 0: 100 * floc / sloc;
+        
+        status.setText(String.format(
+                "File: %d, SLOC: %d, FLOC: %s, Code Fat: %s%%", count,
+                sloc, formatter.format(floc), formatter.format(codefat)));
+    }
+
     DetailModel model2 = new DetailModel();
     JTable table2 = new JTable(model2) {
         @Override
         public TableCellRenderer getCellRenderer(int row, int column) {
-          if (column == 4) {
-            return codeFatRenderer;
-          }
-          return super.getCellRenderer(row, column);
+            if (column == 4) {
+                return codeFatRenderer;
+            }
+            return super.getCellRenderer(row, column);
         }
     };
     {
         table2.setAutoCreateRowSorter(true);
         table2.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
     }
+
     class DetailModel extends AbstractTableModel {
         private static final long serialVersionUID = 1L;
-        private String[] columnNames = { "Type", "Method", "SLOC",
-                "FLOC", "Code Fat" };
+        private String[] columnNames = { "Type", "Method", "SLOC", "FLOC",
+                "Code Fat" };
         private ExeStat[] exes = new ExeStat[0];
 
         public Class<?> getColumnClass(int column) {
@@ -142,15 +176,17 @@ public class MetrGui extends JFrame {
             else
                 return stat.codefat();
         }
+
         public void setDetail(Stat stat) {
-          if (stat == null) {
-            exes = new ExeStat[0];
-          } else {
-            exes = stat.exes();
-          }
-          fireTableDataChanged();
+            if (stat == null) {
+                exes = new ExeStat[0];
+            } else {
+                exes = stat.exes();
+            }
+            fireTableDataChanged();
         }
     };
+
     class MyTableModel extends AbstractTableModel {
         /**
          *
@@ -164,6 +200,22 @@ public class MetrGui extends JFrame {
 
         public Class<?> getColumnClass(int column) {
             return getValueAt(0, column).getClass();
+        }
+        
+        public double floc() {
+            double floc = 0.0;
+            for (Stat stat: stats.values()) {
+                floc += stat.floc();
+            }
+            return floc;
+        }
+
+        public int sloc() {
+            int sloc = 0;
+            for (Stat stat: stats.values()) {
+                sloc += stat.sloc();
+            }
+            return sloc;
         }
 
         public int getColumnCount() {
@@ -200,11 +252,12 @@ public class MetrGui extends JFrame {
             String absolutePath = file.getAbsolutePath();
             int index = Collections.binarySearch(files, absolutePath);
             if (index < 0) {
-                stats.put(absolutePath, defaultStat );
+                stats.put(absolutePath, defaultStat);
                 int insertIndex = -(index + 1);
                 files.add(insertIndex, absolutePath);
                 fireTableRowsInserted(insertIndex, insertIndex);
                 asyncMetr(file);
+                updateStatus();
             }
         }
 
@@ -217,8 +270,9 @@ public class MetrGui extends JFrame {
 
                 int[] selection = table.getSelectedRows();
                 if (selection.length == 1 && selection[0] == index) {
-                   setSelection();
+                    setSelection();
                 }
+                updateStatus();
             }
         }
 
@@ -230,11 +284,13 @@ public class MetrGui extends JFrame {
             stats.clear();
             files.clear();
             fireTableDataChanged();
+            updateStatus();
         }
 
         public void refresh() {
-          for (String filepath: files)
-            asyncMetr(new File(filepath));
+            for (String filepath : files) {
+                asyncMetr(new File(filepath));
+            }
         }
     }
 
@@ -297,13 +353,13 @@ public class MetrGui extends JFrame {
 
     public MetrGui() {
         super("Metr GUI");
-        getContentPane().add(createDummyToolBar(), BorderLayout.NORTH);
+        getContentPane().add(createToolBar(), BorderLayout.NORTH);
 
         JScrollPane scrollPane = new JScrollPane(table);
         JScrollPane scrollPane2 = new JScrollPane(table2);
 
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                                   scrollPane, scrollPane2);
+                scrollPane, scrollPane2);
         splitPane.setDividerLocation(400);
 
         getContentPane().add(splitPane);
@@ -333,51 +389,30 @@ public class MetrGui extends JFrame {
         });
     }
 
-    private JToolBar createDummyToolBar() {
+    private JToolBar createToolBar() {
         JToolBar tb = new JToolBar();
+        tb.setFloatable(false);
+        tb.setRollover(true);
         JButton b;
         b = new JButton("Clear");
         b.setRequestFocusEnabled(false);
         b.addActionListener(new ActionListener() {
-          public void actionPerformed(ActionEvent e) {
-            model.clear();
-            model2.setDetail(null);
-          }
+            public void actionPerformed(ActionEvent e) {
+                model.clear();
+                model2.setDetail(null);
+            }
         });
         tb.add(b);
         b = new JButton("Refresh");
         b.setRequestFocusEnabled(false);
         b.addActionListener(new ActionListener() {
-          public void actionPerformed(ActionEvent e) {
-            model.refresh();
-          }
+            public void actionPerformed(ActionEvent e) {
+                model.refresh();
+            }
         });
         tb.add(b);
-        tb.setFloatable(false);
+        tb.add(Box.createHorizontalGlue());
+        tb.add(status);
         return tb;
-    }
-
-    private JMenuBar createDummyMenuBar() {
-        JMenuBar mb = new JMenuBar();
-        mb.add(createDummyMenu("File"));
-        mb.add(createDummyMenu("Edit"));
-        mb.add(createDummyMenu("Search"));
-        mb.add(createDummyMenu("View"));
-        mb.add(createDummyMenu("Tools"));
-        mb.add(createDummyMenu("Help"));
-
-        JMenu demo = new JMenu("Demo");
-        demo.setMnemonic(KeyEvent.VK_D);
-        mb.add(demo);
-
-        return mb;
-    }
-
-    private JMenu createDummyMenu(String str) {
-        JMenu menu = new JMenu(str);
-        JMenuItem item = new JMenuItem("[Empty]");
-        item.setEnabled(false);
-        menu.add(item);
-        return menu;
     }
 }
