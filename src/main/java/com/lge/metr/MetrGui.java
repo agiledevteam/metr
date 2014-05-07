@@ -54,7 +54,7 @@ class CodeFatRenderer extends DefaultTableCellRenderer {
     }
 
     public void setValue(Object value) {
-        setText((value == null) ? "" : formatter.format((double) value) + "%");
+        setText((value == null) ? "" : formatter.format((double)value) + "%");
     }
 }
 
@@ -71,14 +71,7 @@ public class MetrGui extends JFrame {
     private static final long serialVersionUID = 1L;
     JLabel status = new JLabel();
     MyTableModel model = new MyTableModel();
-//    {
-//        model.addTableModelListener(new TableModelListener() {
-//            @Override
-//            public void tableChanged(TableModelEvent arg0) {
-//                updateStatus();
-//            }
-//        });
-//    }
+
     CodeFatRenderer codeFatRenderer = new CodeFatRenderer(formatter);
     JTable table = new JTable(model) {
         @Override
@@ -119,11 +112,10 @@ public class MetrGui extends JFrame {
         int count = model.getRowCount();
         int sloc = model.sloc();
         double floc = model.floc();
-        double codefat = (sloc == 0) ? 0: 100 * floc / sloc;
-        
-        status.setText(String.format(
-                "File: %d, SLOC: %d, FLOC: %s, Code Fat: %s%%", count,
-                sloc, formatter.format(floc), formatter.format(codefat)));
+        double codefat = (sloc == 0) ? 0 : 100 * floc / sloc;
+
+        status.setText(String.format("File: %d, SLOC: %d, FLOC: %s, Code Fat: %s%%", count, sloc,
+                formatter.format(floc), formatter.format(codefat)));
     }
 
     DetailModel model2 = new DetailModel();
@@ -143,12 +135,13 @@ public class MetrGui extends JFrame {
 
     class DetailModel extends AbstractTableModel {
         private static final long serialVersionUID = 1L;
-        private String[] columnNames = { "Type", "Method", "SLOC", "FLOC",
-                "Code Fat" };
+        private String[] columnNames = { "Type", "Method", "SLOC", "FLOC", "Code Fat" };
+        private Class<?>[] columnClasses = { String.class, String.class, Integer.class,
+                Double.class, Double.class };
         private ExeStat[] exes = new ExeStat[0];
 
         public Class<?> getColumnClass(int column) {
-            return getValueAt(0, column).getClass();
+            return columnClasses[column];
         }
 
         public int getColumnCount() {
@@ -192,19 +185,20 @@ public class MetrGui extends JFrame {
          *
          */
         private static final long serialVersionUID = 1L;
-        private String[] columnNames = { "Location", "Filename", "SLOC",
-                "FLOC", "Code Fat" };
+        private String[] columnNames = { "Location", "Filename", "SLOC", "FLOC", "Code Fat" };
+        private Class<?>[] columnClasses = { String.class, String.class, Integer.class,
+                Double.class, Double.class };
         private List<String> files = new ArrayList<>();
         private HashMap<String, Stat> stats = new HashMap<>();
         private Stat defaultStat = new Stat(new ExeStat[0]);
 
         public Class<?> getColumnClass(int column) {
-            return getValueAt(0, column).getClass();
+            return columnClasses[column];
         }
-        
+
         public double floc() {
             double floc = 0.0;
-            for (Stat stat: stats.values()) {
+            for (Stat stat : stats.values()) {
                 floc += stat.floc();
             }
             return floc;
@@ -212,7 +206,7 @@ public class MetrGui extends JFrame {
 
         public int sloc() {
             int sloc = 0;
-            for (Stat stat: stats.values()) {
+            for (Stat stat : stats.values()) {
                 sloc += stat.sloc();
             }
             return sloc;
@@ -333,8 +327,7 @@ public class MetrGui extends JFrame {
 
             Transferable t = support.getTransferable();
             try {
-                List<File> l = (List<File>) t
-                        .getTransferData(DataFlavor.javaFileListFlavor);
+                List<File> l = (List<File>)t.getTransferData(DataFlavor.javaFileListFlavor);
 
                 for (File f : l) {
                     for (File f2 : FileUtil.java_gatherFiles(f, ".java"))
@@ -346,25 +339,37 @@ public class MetrGui extends JFrame {
             } catch (IOException e) {
                 return false;
             }
-
+            render();
             return true;
         }
     };
 
     public MetrGui() {
         super("Metr GUI");
-        getContentPane().add(createToolBar(), BorderLayout.NORTH);
-
-        JScrollPane scrollPane = new JScrollPane(table);
-        JScrollPane scrollPane2 = new JScrollPane(table2);
-
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                scrollPane, scrollPane2);
-        splitPane.setDividerLocation(400);
-
-        getContentPane().add(splitPane);
-
         setTransferHandler(handler);
+        render();
+    }
+
+    private void render() {
+        if (model.getRowCount() > 0) {
+            getContentPane().removeAll();
+            getContentPane().add(createToolBar(), BorderLayout.NORTH);
+
+            JScrollPane scrollPane = new JScrollPane(table);
+            JScrollPane scrollPane2 = new JScrollPane(table2);
+
+            JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollPane,
+                    scrollPane2);
+            splitPane.setDividerLocation(400);
+
+            getContentPane().add(splitPane);
+            updateStatus();
+        } else {
+            getContentPane().removeAll();
+            JLabel label = new JLabel("Drag and drop java files or directories here", JLabel.CENTER);
+            getContentPane().add(label, BorderLayout.CENTER);
+            updateStatus();
+        }
     }
 
     private static void createAndShowGUI(String[] args) {
@@ -400,6 +405,7 @@ public class MetrGui extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 model.clear();
                 model2.setDetail(null);
+                render();
             }
         });
         tb.add(b);
