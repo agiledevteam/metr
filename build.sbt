@@ -26,7 +26,7 @@ libraryDependencies += "com.github.scopt" %% "scopt" % "3.2.0"
 
 libraryDependencies += "com.netflix.rxjava" % "rxjava-scala" % "0.15.1"
 
-libraryDependencies += "org.antlr" % "antlr4-runtime" % "4.1"
+libraryDependencies += "org.antlr" % "antlr4-runtime" % "4.2.2"
 
 libraryDependencies += "org.parboiled" % "parboiled-scala_2.10" % "1.1.5"
 
